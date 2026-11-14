@@ -24,6 +24,10 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [gdriveStatus, setGdriveStatus] = useState<{
+    connected: boolean;
+    quota?: { limit: number; usage: number };
+  }>({ connected: false });
   const supabase = createClient();
 
   const fetchProfile = React.useCallback(async () => {
@@ -65,6 +69,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchProfile();
+    fetch("/api/gdrive/status")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setGdriveStatus(data);
+      })
+      .catch(() => {});
   }, [fetchProfile]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -174,6 +184,60 @@ export default function SettingsPage() {
                   <span>Lưu thay đổi</span>
                 </Button>
               </form>
+            )}
+          </div>
+
+          {/* Google Drive 5TB Integration Card */}
+          <div className="p-6 rounded-2xl border bg-card shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                  <HardDrive className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base flex items-center gap-2">
+                    <span>Google Drive 5 TB</span>
+                    {gdriveStatus.connected ? (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
+                        Đang kết nối
+                      </span>
+                    ) : (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold">
+                        Chưa kết nối
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Sử dụng gói Google Drive 5.000 GB của bạn làm kho chứa tệp
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {gdriveStatus.connected ? (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+                <p className="font-semibold">
+                  Tài khoản Google Drive 5 TB đã được kích hoạt thành công!
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Mọi tệp tải lên từ bây giờ sẽ được lưu trực tiếp vào Google Drive của bạn và quản lý thông qua CloudBox.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs text-muted-foreground">
+                <p>
+                  Để kết nối tài khoản Google 5 TB của bạn, hãy thêm các biến sau vào file <code>.env.local</code>:
+                </p>
+                <pre className="p-3 bg-muted/60 rounded-xl font-mono text-[11px] overflow-x-auto select-all">
+                  GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com{"\n"}
+                  GOOGLE_CLIENT_SECRET=your-google-client-secret{"\n"}
+                  GOOGLE_REFRESH_TOKEN=your-google-oauth-refresh-token{"\n"}
+                  GOOGLE_DRIVE_FOLDER_ID=your-optional-folder-id
+                </pre>
+                <p className="text-[11px]">
+                  💡 Sau khi thêm các biến này vào <code>.env.local</code> và khởi động lại, CloudBox sẽ tự động dùng Google Drive 5 TB thay vì bộ nhớ mặc định!
+                </p>
+              </div>
             )}
           </div>
 

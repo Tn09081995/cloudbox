@@ -84,8 +84,16 @@ export function DeleteConfirmModal({
 
       if (isPermanent) {
         // Permanent delete:
-        // 1. If it's a file, delete from Supabase Storage first
-        if (type === "file" && storagePath) {
+        // 1. If it's a Google Drive file, delete from Google Drive
+        if (type === "file" && storagePath?.startsWith("gdrive:")) {
+          const fileId = storagePath.replace("gdrive:", "");
+          await fetch("/api/gdrive/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileId }),
+          });
+        } else if (type === "file" && storagePath) {
+          // If it's a Supabase file, delete from Supabase Storage
           await supabase.storage.from("cloudbox").remove([storagePath]);
         } else if (type === "folder") {
           // If deleting folder permanently, fetch all files inside and delete from storage

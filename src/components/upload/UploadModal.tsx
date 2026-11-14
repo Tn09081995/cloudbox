@@ -159,18 +159,29 @@ export function UploadModal({
         )
       );
 
-      // Generate secure storage path prefixed with user id
-      const uniqueSuffix = `${Date.now()}_${nanoid(6)}`;
       const safeName = item.name;
-      const folderSegment = currentFolderId ? currentFolderId : "root";
-      const storagePath = `${userId}/${folderSegment}/${uniqueSuffix}_${safeName}`;
 
-      // Upload DIRECTLY from browser to Supabase Storage via REST endpoint
-      // Bypasses Vercel's 4.5MB Serverless function limit completely!
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const uploadUrl = `${supabaseUrl}/storage/v1/object/cloudbox/${encodeURIComponent(
-        storagePath
-      )}`;
+      // Check if Google Drive 5TB Provider is configured
+      let gdriveUploadUrl: string | null = null;
+      try {
+        const initRes = await fetch("/api/gdrive/init-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: safeName,
+            mimeType: item.file.type || "application/octet-stream",
+            size: item.size,
+          }),
+        });
+        if (initRes.ok) {
+          const initData = await initRes.json();
+          if (initData.provider === "gdrive" && initData.uploadUrl) {
+            gdriveUploadUrl = initData.uploadUrl;
+          }
+        }
+      } catch {
+        // Fallback to Supabase
+      }
 
       const xhr = new XMLHttpRequest();
 
@@ -179,75 +190,159 @@ export function UploadModal({
         prev.map((i) => (i.id === item.id ? { ...i, xhr } : i))
       );
 
-      xhr.open("POST", uploadUrl, true);
-      xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
-      xhr.setRequestHeader("apikey", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-      xhr.setRequestHeader("x-upsert", "false");
-      if (item.file.type) {
-        xhr.setRequestHeader("Content-Type", item.file.type);
-      }
-
-      // Track progress
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          setQueue((prev) =>
-            prev.map((i) =>
-              i.id === item.id ? { ...i, progress: percent } : i
-            )
-          );
+      if (gdriveUploadUrl) {
+        // ----------------------------------------------------
+        // DIRECT UPLOAD TO GOOGLE DRIVE 5TB
+        // ----------------------------------------------------
+        xhr.open("PUT", gdriveUploadUrl, true);
+        if (item.file.type) {
+          xhr.setRequestHeader("Content-Type", item.file.type);
         }
-      };
 
-      xhr.onload = async () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          // Record uploaded file in Postgres files table
-          const { error: dbError } = await supabase.from("files").insert({
-            owner_id: userId,
-            folder_id: currentFolderId,
-            name: safeName,
-            size: item.size,
-            mime_type: item.file.type || "application/octet-stream",
-            storage_path: storagePath,
-          });
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            setQueue((prev) =>
+              prev.map((i) =>
+                i.id === item.id ? { ...i, progress: percent } : i
+              )
+            );
+          }
+        };
 
-          if (dbError) {
+        xhr.onload = async () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const resData = JSON.parse(xhr.responseText);
+              const gdriveFileId = resData.id;
+              const storagePath = `gdrive:${gdriveFileId}`;
+
+              const { error: dbError } = await supabase.from("files").insert({
+                owner_id: userId,
+                folder_id: currentFolderId,
+                name: safeName,
+                size: item.size,
+                mime_type: item.file.type || "application/octet-stream",
+                storage_path: storagePath,
+              });
+
+              if (dbError) throw dbError;
+
+              setQueue((prev) =>
+                prev.map((i) =>
+                  i.id === item.id ? { ...i, status: "completed", progress: 100 } : i
+                )
+              );
+              toast.success(`Đã lưu "${safeName}" lên Google Drive 5TB!`);
+              onUploadSuccess();
+            } catch {
+              setQueue((prev) =>
+                prev.map((i) =>
+                  i.id === item.id
+                    ? {
+                        ...i,
+                        status: "error",
+                        errorMessage: "Lỗi lưu thông tin tệp",
+                      }
+                    : i
+                )
+              );
+            }
+          } else {
             setQueue((prev) =>
               prev.map((i) =>
                 i.id === item.id
                   ? {
                       ...i,
                       status: "error",
-                      errorMessage: "Lỗi ghi dữ liệu tệp vào cơ sở dữ liệu",
+                      errorMessage: `Lỗi tải lên Google Drive (${xhr.status})`,
                     }
                   : i
               )
             );
-            toast.error(`Lỗi lưu thông tin tệp ${safeName}`);
+          }
+        };
+      } else {
+        // ----------------------------------------------------
+        // DIRECT UPLOAD TO SUPABASE STORAGE
+        // ----------------------------------------------------
+        const uniqueSuffix = `${Date.now()}_${nanoid(6)}`;
+        const folderSegment = currentFolderId ? currentFolderId : "root";
+        const storagePath = `${userId}/${folderSegment}/${uniqueSuffix}_${safeName}`;
+
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const uploadUrl = `${supabaseUrl}/storage/v1/object/cloudbox/${encodeURIComponent(
+          storagePath
+        )}`;
+
+        xhr.open("POST", uploadUrl, true);
+        xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
+        xhr.setRequestHeader("apikey", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+        xhr.setRequestHeader("x-upsert", "false");
+        if (item.file.type) {
+          xhr.setRequestHeader("Content-Type", item.file.type);
+        }
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            setQueue((prev) =>
+              prev.map((i) =>
+                i.id === item.id ? { ...i, progress: percent } : i
+              )
+            );
+          }
+        };
+
+        xhr.onload = async () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const { error: dbError } = await supabase.from("files").insert({
+              owner_id: userId,
+              folder_id: currentFolderId,
+              name: safeName,
+              size: item.size,
+              mime_type: item.file.type || "application/octet-stream",
+              storage_path: storagePath,
+            });
+
+            if (dbError) {
+              setQueue((prev) =>
+                prev.map((i) =>
+                  i.id === item.id
+                    ? {
+                        ...i,
+                        status: "error",
+                        errorMessage: "Lỗi ghi dữ liệu tệp vào cơ sở dữ liệu",
+                      }
+                    : i
+                )
+              );
+              toast.error(`Lỗi lưu thông tin tệp ${safeName}`);
+            } else {
+              setQueue((prev) =>
+                prev.map((i) =>
+                  i.id === item.id ? { ...i, status: "completed", progress: 100 } : i
+                )
+              );
+              toast.success(`Đã tải lên "${safeName}" thành công!`);
+              onUploadSuccess();
+            }
           } else {
             setQueue((prev) =>
               prev.map((i) =>
-                i.id === item.id ? { ...i, status: "completed", progress: 100 } : i
+                i.id === item.id
+                  ? {
+                      ...i,
+                      status: "error",
+                      errorMessage: `Lỗi tải lên (${xhr.status})`,
+                    }
+                  : i
               )
             );
-            toast.success(`Đã tải lên "${safeName}" thành công!`);
-            onUploadSuccess();
+            toast.error(`Tải lên tệp ${safeName} thất bại!`);
           }
-        } else {
-          setQueue((prev) =>
-            prev.map((i) =>
-              i.id === item.id
-                ? {
-                    ...i,
-                    status: "error",
-                    errorMessage: `Lỗi tải lên (${xhr.status})`,
-                  }
-                : i
-            )
-          );
-          toast.error(`Tải lên tệp ${safeName} thất bại!`);
-        }
-      };
+        };
+      }
 
       xhr.onerror = () => {
         setQueue((prev) =>

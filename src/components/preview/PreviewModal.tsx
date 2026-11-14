@@ -57,6 +57,25 @@ export function PreviewModal({ isOpen, onClose, file }: PreviewModalProps) {
         return;
       }
 
+      // Handle Google Drive 5TB Files
+      if (fileRecord.storage_path.startsWith("gdrive:")) {
+        const fileId = fileRecord.storage_path.replace("gdrive:", "");
+        const driveUrl = `/api/gdrive/file/${fileId}`;
+        setSignedUrl(driveUrl);
+
+        if (category === "text" || category === "code") {
+          try {
+            const res = await fetch(driveUrl);
+            const text = await res.text();
+            setTextContent(text);
+          } catch {
+            setTextContent("Không thể tải nội dung văn bản.");
+          }
+        }
+        setIsLoading(false);
+        return;
+      }
+
       // Create short-lived signed URL (valid for 5 minutes = 300 seconds)
       const { data, error } = await supabase.storage
         .from("cloudbox")

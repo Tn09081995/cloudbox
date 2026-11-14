@@ -114,21 +114,30 @@ export default async function SharedFilePage({ params }: SharedFilePageProps) {
     );
   }
 
-  // Generate short-lived signed URL for download/preview (valid 5 minutes = 300 seconds)
-  const { data: signedData } = await admin.storage
-    .from("cloudbox")
-    .createSignedUrl(file.storage_path, 300, {
-      download: false,
-    });
+  let previewUrl = "";
+  let downloadUrl = "";
 
-  const { data: downloadData } = await admin.storage
-    .from("cloudbox")
-    .createSignedUrl(file.storage_path, 300, {
-      download: file.name,
-    });
+  if (file.storage_path.startsWith("gdrive:")) {
+    const fileId = file.storage_path.replace("gdrive:", "");
+    previewUrl = `/api/gdrive/file/${fileId}`;
+    downloadUrl = `/api/gdrive/file/${fileId}?download=true`;
+  } else {
+    // Generate short-lived signed URL for download/preview (valid 5 minutes = 300 seconds)
+    const { data: signedData } = await admin.storage
+      .from("cloudbox")
+      .createSignedUrl(file.storage_path, 300, {
+        download: false,
+      });
 
-  const previewUrl = signedData?.signedUrl || "";
-  const downloadUrl = downloadData?.signedUrl || previewUrl;
+    const { data: downloadData } = await admin.storage
+      .from("cloudbox")
+      .createSignedUrl(file.storage_path, 300, {
+        download: file.name,
+      });
+
+    previewUrl = signedData?.signedUrl || "";
+    downloadUrl = downloadData?.signedUrl || previewUrl;
+  }
   const category = getFileCategory(file.mime_type, file.name);
 
   // If text or code, fetch content server-side to render directly

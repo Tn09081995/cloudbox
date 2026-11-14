@@ -95,6 +95,21 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
 
   const fetchQuota = useCallback(async () => {
     try {
+      // 1. Check if Google Drive 5TB is connected
+      try {
+        const gdriveRes = await fetch("/api/gdrive/status");
+        if (gdriveRes.ok) {
+          const gdata = await gdriveRes.json();
+          if (gdata.connected && gdata.quota) {
+            setQuotaBytes(gdata.quota.limit);
+            setUsedBytes(gdata.quota.usage);
+            return;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -203,6 +218,17 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
 
   const downloadFile = async (file: FileRecord) => {
     try {
+      if (file.storage_path.startsWith("gdrive:")) {
+        const fileId = file.storage_path.replace("gdrive:", "");
+        const a = document.createElement("a");
+        a.href = `/api/gdrive/file/${fileId}?download=true`;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
       const { data, error } = await supabase.storage
         .from("cloudbox")
         .createSignedUrl(file.storage_path, 60, {
