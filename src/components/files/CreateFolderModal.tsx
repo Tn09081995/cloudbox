@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { FolderPlus, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeFileName } from "@/lib/utils";
+import { getDemoFolders, saveDemoFolders } from "@/lib/demo-storage";
+import { Folder } from "@/types";
 import { toast } from "sonner";
 
 interface CreateFolderModalProps {
@@ -49,7 +51,22 @@ export function CreateFolderModal({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        toast.error("Vui lòng đăng nhập để thực hiện");
+        const demoFolders = getDemoFolders();
+        const newFolder: Folder = {
+          id: `demo-f-${Date.now()}`,
+          owner_id: "demo-user",
+          parent_id: currentFolderId,
+          name: cleanName,
+          deleted_at: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        demoFolders.push(newFolder);
+        saveDemoFolders(demoFolders);
+        toast.success(`Đã tạo thư mục "${cleanName}" thành công!`);
+        setFolderName("");
+        onSuccess();
+        onClose();
         return;
       }
 

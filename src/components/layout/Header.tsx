@@ -56,6 +56,7 @@ export function Header({
 
   const handleLogout = async () => {
     try {
+      await fetch("/api/auth/demo", { method: "DELETE" });
       await supabase.auth.signOut();
       toast.success("Đã đăng xuất thành công");
       router.push("/login");

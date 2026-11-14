@@ -15,6 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Edit3, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeFileName } from "@/lib/utils";
+import {
+  getDemoFiles,
+  saveDemoFiles,
+  getDemoFolders,
+  saveDemoFolders,
+} from "@/lib/demo-storage";
 import { toast } from "sonner";
 
 interface RenameModalProps {
@@ -56,6 +62,36 @@ export function RenameModal({
 
     try {
       setIsLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        if (type === "file") {
+          const files = getDemoFiles();
+          const target = files.find((f) => f.id === itemId);
+          if (target) {
+            target.name = cleanName;
+            target.updated_at = new Date().toISOString();
+            saveDemoFiles(files);
+          }
+        } else {
+          const folders = getDemoFolders();
+          const target = folders.find((f) => f.id === itemId);
+          if (target) {
+            target.name = cleanName;
+            target.updated_at = new Date().toISOString();
+            saveDemoFolders(folders);
+          }
+        }
+        toast.success(
+          `Đã đổi tên ${type === "file" ? "tệp" : "thư mục"} thành "${cleanName}"!`
+        );
+        onSuccess();
+        onClose();
+        return;
+      }
+
       const tableName = type === "file" ? "files" : "folders";
 
       const { error } = await supabase

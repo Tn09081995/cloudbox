@@ -33,6 +33,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const isDemoSession =
+    request.cookies.get("cloudbox_demo_session")?.value === "true";
+  const isAuthenticated = !!user || isDemoSession;
+
   const pathname = request.nextUrl.pathname;
 
   // Protected paths
@@ -45,14 +49,14 @@ export async function updateSession(request: NextRequest) {
   const isAuthPath =
     pathname === "/login" || pathname === "/register";
 
-  if (!user && isProtectedPath) {
+  if (!isAuthenticated && isProtectedPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthPath) {
+  if (isAuthenticated && isAuthPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/drive";
     return NextResponse.redirect(url);

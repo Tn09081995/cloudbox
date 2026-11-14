@@ -12,6 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getDemoFiles,
+  saveDemoFiles,
+  getDemoFolders,
+  saveDemoFolders,
+} from "@/lib/demo-storage";
 import { toast } from "sonner";
 
 interface DeleteConfirmModalProps {
@@ -41,6 +47,39 @@ export function DeleteConfirmModal({
   const handleDelete = async () => {
     try {
       setIsLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        if (type === "file") {
+          let files = getDemoFiles();
+          if (isPermanent) {
+            files = files.filter((f) => f.id !== itemId);
+            toast.success(`Đã xóa vĩnh viễn "${itemName}"!`);
+          } else {
+            const target = files.find((f) => f.id === itemId);
+            if (target) target.deleted_at = new Date().toISOString();
+            toast.success(`Đã chuyển "${itemName}" vào thùng rác!`);
+          }
+          saveDemoFiles(files);
+        } else {
+          let folders = getDemoFolders();
+          if (isPermanent) {
+            folders = folders.filter((f) => f.id !== itemId);
+            toast.success(`Đã xóa vĩnh viễn "${itemName}"!`);
+          } else {
+            const target = folders.find((f) => f.id === itemId);
+            if (target) target.deleted_at = new Date().toISOString();
+            toast.success(`Đã chuyển "${itemName}" vào thùng rác!`);
+          }
+          saveDemoFolders(folders);
+        }
+        onSuccess();
+        onClose();
+        return;
+      }
+
       const tableName = type === "file" ? "files" : "folders";
 
       if (isPermanent) {

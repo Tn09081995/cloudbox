@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ViewMode, SortField, SortOrder, FileRecord } from "@/types";
+import { getDemoFiles } from "@/lib/demo-storage";
 import { createClient } from "@/lib/supabase/client";
 
 interface DriveContextType {
@@ -98,7 +99,13 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        const demoFiles = getDemoFiles().filter((f) => f.deleted_at === null);
+        const used = demoFiles.reduce((acc, f) => acc + f.size, 0);
+        setUsedBytes(used);
+        setQuotaBytes(1073741824);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("profiles")

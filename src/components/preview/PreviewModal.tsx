@@ -29,6 +29,34 @@ export function PreviewModal({ isOpen, onClose, file }: PreviewModalProps) {
   const loadSignedUrl = useCallback(async (fileRecord: FileRecord) => {
     try {
       setIsLoading(true);
+
+      const category = getFileCategory(fileRecord.mime_type, fileRecord.name);
+
+      if (fileRecord.id.startsWith("demo-")) {
+        if (category === "image") {
+          setSignedUrl(
+            "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80"
+          );
+        } else if (category === "text" || category === "code") {
+          setTextContent(
+            "Đây là nội dung tệp tin văn bản mẫu trong CloudBox.\n\n- Tính năng xem trước hỗ trợ: hình ảnh, PDF, video, audio, text/code.\n- Mọi dữ liệu được bảo mật bằng liên kết ký mã thời hạn ngắn (Signed URL).\n- Khi bạn kết nối Supabase thật và tải tệp lên, nội dung thật sẽ hiển thị tại đây!"
+          );
+          setSignedUrl("data:text/plain;charset=utf-8,Demo");
+        } else if (category === "video") {
+          setSignedUrl(
+            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+          );
+        } else if (category === "pdf") {
+          setSignedUrl(
+            "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+          );
+        } else {
+          setSignedUrl("data:application/octet-stream;base64,");
+        }
+        setIsLoading(false);
+        return;
+      }
+
       // Create short-lived signed URL (valid for 5 minutes = 300 seconds)
       const { data, error } = await supabase.storage
         .from("cloudbox")
@@ -41,7 +69,6 @@ export function PreviewModal({ isOpen, onClose, file }: PreviewModalProps) {
       setSignedUrl(data.signedUrl);
 
       // If text/code, fetch content for rendering
-      const category = getFileCategory(fileRecord.mime_type, fileRecord.name);
       if (category === "text" || category === "code") {
         try {
           const res = await fetch(data.signedUrl);

@@ -3,7 +3,16 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Cloud, Lock, Mail, User, Loader2, ArrowRight } from "lucide-react";
+import {
+  Cloud,
+  Lock,
+  Mail,
+  User,
+  Loader2,
+  ArrowRight,
+  Sparkles,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +26,26 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  const isDummyConfig =
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("dummy") || false;
+
+  const handleDemoLogin = async () => {
+    try {
+      setIsDemoLoading(true);
+      await fetch("/api/auth/demo", { method: "POST" });
+      toast.success("Đã vào Chế độ Trải nghiệm Demo!");
+      router.push("/drive");
+      router.refresh();
+    } catch {
+      toast.error("Không thể kích hoạt chế độ dùng thử");
+    } finally {
+      setIsDemoLoading(false);
+    }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,8 +90,16 @@ export default function RegisterPage() {
         router.push("/login");
       }
     } catch (err: unknown) {
-      const errorMsg =
+      let errorMsg =
         err instanceof Error ? err.message : "Đăng ký thất bại";
+      if (
+        errorMsg.includes("Failed to fetch") ||
+        errorMsg.includes("fetch failed") ||
+        errorMsg.includes("NetworkError")
+      ) {
+        errorMsg =
+          "Không thể kết nối đến Supabase! Hãy điền thông tin dự án thật vào .env.local hoặc bấm 'Dùng thử chế độ Demo' bên dưới.";
+      }
       toast.error(errorMsg);
     } finally {
       setIsLoading(false);
@@ -88,8 +123,15 @@ export default function RegisterPage() {
 
       if (error) throw error;
     } catch (err: unknown) {
-      const errorMsg =
+      let errorMsg =
         err instanceof Error ? err.message : "Lỗi khi kết nối Google";
+      if (
+        errorMsg.includes("Failed to fetch") ||
+        errorMsg.includes("fetch failed")
+      ) {
+        errorMsg =
+          "Chưa kết nối Supabase thật trong file .env.local để dùng Google OAuth.";
+      }
       toast.error(errorMsg);
       setIsGoogleLoading(false);
     }
@@ -117,13 +159,52 @@ export default function RegisterPage() {
 
         {/* Card Form */}
         <div className="p-8 rounded-3xl border bg-card shadow-sm space-y-5">
+          {/* Dummy Warning */}
+          {isDummyConfig && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 space-y-1.5">
+              <div className="flex items-center gap-1.5 font-semibold">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+                <span>Chưa cấu hình Supabase thật</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                File <code>.env.local</code> đang dùng URL mẫu. Bạn có thể bấm nút
+                dùng thử bên dưới để trải nghiệm ngay mọi tính năng mà không cần
+                cài đặt tài khoản.
+              </p>
+            </div>
+          )}
+
+          {/* Instant Demo Button */}
+          <Button
+            type="button"
+            variant="default"
+            onClick={handleDemoLogin}
+            disabled={isDemoLoading || isLoading}
+            className="w-full h-11 rounded-xl font-semibold gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+          >
+            {isDemoLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-amber-300" />
+            )}
+            <span>Dùng thử chế độ Demo (Trải nghiệm ngay)</span>
+          </Button>
+
+          <div className="relative flex items-center justify-center text-xs uppercase">
+            <div className="w-full border-t" />
+            <span className="bg-card px-3 text-muted-foreground font-medium">
+              Hoặc đăng ký tài khoản
+            </span>
+            <div className="w-full border-t" />
+          </div>
+
           {/* Google Button */}
           <Button
             type="button"
             variant="outline"
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading || isLoading}
-            className="w-full h-11 rounded-xl font-medium gap-3 border-input hover:bg-accent"
+            className="w-full h-10 rounded-xl font-medium gap-3 border-input hover:bg-accent text-xs"
           >
             {isGoogleLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -150,15 +231,7 @@ export default function RegisterPage() {
             <span>Đăng ký với Google</span>
           </Button>
 
-          <div className="relative flex items-center justify-center text-xs uppercase">
-            <div className="w-full border-t" />
-            <span className="bg-card px-3 text-muted-foreground font-medium">
-              Hoặc điền thông tin
-            </span>
-            <div className="w-full border-t" />
-          </div>
-
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <Label htmlFor="display-name">Họ và tên</Label>
               <div className="relative">
@@ -212,6 +285,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={isLoading || isGoogleLoading}
+              variant="outline"
               className="w-full h-11 rounded-xl font-semibold gap-2 mt-2"
             >
               {isLoading ? (
@@ -219,7 +293,7 @@ export default function RegisterPage() {
               ) : (
                 <ArrowRight className="h-4 w-4" />
               )}
-              <span>Tạo tài khoản</span>
+              <span>Đăng ký với email</span>
             </Button>
           </form>
         </div>

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { UploadDropzone } from "./UploadDropzone";
 import { formatBytes, sanitizeFileName } from "@/lib/utils";
+import { getDemoFiles, saveDemoFiles } from "@/lib/demo-storage";
 import { createClient } from "@/lib/supabase/client";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
@@ -74,11 +75,6 @@ export function UploadModal({
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      toast.error("Vui lòng đăng nhập lại để tải tệp.");
-      return;
-    }
-
     const newItems: UploadFileItem[] = files.map((file) => ({
       id: nanoid(),
       file,
@@ -90,10 +86,61 @@ export function UploadModal({
 
     setQueue((prev) => [...prev, ...newItems]);
 
+    if (!user) {
+      // Demo upload simulation
+      for (const item of newItems) {
+        simulateDemoUpload(item);
+      }
+      return;
+    }
+
     // Start uploading items sequentially or in parallel
     for (const item of newItems) {
       uploadSingleFile(item, user.id);
     }
+  };
+
+  const simulateDemoUpload = (item: UploadFileItem) => {
+    setQueue((prev) =>
+      prev.map((i) =>
+        i.id === item.id ? { ...i, status: "uploading", progress: 15 } : i
+      )
+    );
+
+    setTimeout(() => {
+      setQueue((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, progress: 65 } : i
+        )
+      );
+    }, 400);
+
+    setTimeout(() => {
+      setQueue((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, status: "completed", progress: 100 } : i
+        )
+      );
+
+      // Save to demo files
+      const demoFiles = getDemoFiles();
+      demoFiles.unshift({
+        id: `demo-${nanoid(6)}`,
+        owner_id: "demo-user",
+        folder_id: currentFolderId,
+        name: item.name,
+        size: item.size,
+        mime_type: item.file.type || "application/octet-stream",
+        storage_path: `demo/${item.name}`,
+        deleted_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      saveDemoFiles(demoFiles);
+
+      toast.success(`Đã tải lên "${item.name}" thành công!`);
+      onUploadSuccess();
+    }, 900);
   };
 
   const uploadSingleFile = async (item: UploadFileItem, userId: string) => {

@@ -4,6 +4,12 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useDrive } from "@/context/DriveContext";
 import { createClient } from "@/lib/supabase/client";
 import { Folder, FileRecord } from "@/types";
+import {
+  getDemoFiles,
+  saveDemoFiles,
+  getDemoFolders,
+  saveDemoFolders,
+} from "@/lib/demo-storage";
 import { FileGrid } from "@/components/files/FileGrid";
 import { FileList } from "@/components/files/FileList";
 import { Button } from "@/components/ui/button";
@@ -40,7 +46,17 @@ export default function TrashPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        const deletedFolders = getDemoFolders().filter(
+          (f) => f.deleted_at !== null
+        );
+        const deletedFiles = getDemoFiles().filter(
+          (f) => f.deleted_at !== null
+        );
+        setFolders(deletedFolders);
+        setFiles(deletedFiles);
+        return;
+      }
 
       const [foldersRes, filesRes] = await Promise.all([
         supabase
@@ -74,6 +90,20 @@ export default function TrashPage() {
   // Restore file
   const handleRestoreFile = async (file: FileRecord) => {
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        const files = getDemoFiles();
+        const target = files.find((f) => f.id === file.id);
+        if (target) target.deleted_at = null;
+        saveDemoFiles(files);
+        toast.success(`Đã khôi phục "${file.name}"!`);
+        triggerRefresh();
+        return;
+      }
+
       const { error } = await supabase
         .from("files")
         .update({ deleted_at: null })
@@ -90,6 +120,20 @@ export default function TrashPage() {
   // Restore folder
   const handleRestoreFolder = async (folder: Folder) => {
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        const folders = getDemoFolders();
+        const target = folders.find((f) => f.id === folder.id);
+        if (target) target.deleted_at = null;
+        saveDemoFolders(folders);
+        toast.success(`Đã khôi phục thư mục "${folder.name}"!`);
+        triggerRefresh();
+        return;
+      }
+
       const { error } = await supabase
         .from("folders")
         .update({ deleted_at: null })
@@ -111,6 +155,19 @@ export default function TrashPage() {
 
     try {
       setIsPurging(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        const files = getDemoFiles().filter((f) => f.deleted_at === null);
+        const folders = getDemoFolders().filter((f) => f.deleted_at === null);
+        saveDemoFiles(files);
+        saveDemoFolders(folders);
+        toast.success("Đã dọn sạch thùng rác thành công!");
+        triggerRefresh();
+        return;
+      }
 
       // Remove files from storage
       const storagePaths = files.map((f) => f.storage_path);

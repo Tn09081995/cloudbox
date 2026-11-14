@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useDrive } from "@/context/DriveContext";
 import { createClient } from "@/lib/supabase/client";
 import { Folder, FileRecord, BreadcrumbItem } from "@/types";
+import { getDemoFolders, getDemoFiles } from "@/lib/demo-storage";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { FileGrid } from "./FileGrid";
 import { FileList } from "./FileList";
@@ -96,7 +97,39 @@ export function DriveView({ folderId }: DriveViewProps) {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        // Fallback to demo local storage
+        const allFolders = getDemoFolders().filter((f) => f.deleted_at === null);
+        const allFiles = getDemoFiles().filter((f) => f.deleted_at === null);
+
+        const currentFolders = folderId
+          ? allFolders.filter((f) => f.parent_id === folderId)
+          : allFolders.filter((f) => f.parent_id === null);
+
+        const currentFiles = folderId
+          ? allFiles.filter((f) => f.folder_id === folderId)
+          : allFiles.filter((f) => f.folder_id === null);
+
+        setFolders(currentFolders);
+        setFiles(currentFiles);
+
+        if (folderId) {
+          const trail: BreadcrumbItem[] = [];
+          let cur: string | null = folderId;
+          let depth = 0;
+          while (cur && depth < 10) {
+            depth++;
+            const found = allFolders.find((f) => f.id === cur);
+            if (!found) break;
+            trail.unshift({ id: found.id, name: found.name });
+            cur = found.parent_id;
+          }
+          setBreadcrumbs(trail);
+        } else {
+          setBreadcrumbs([]);
+        }
+        return;
+      }
 
       // 1. Fetch folders
       let foldersQuery = supabase

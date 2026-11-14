@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
   Cloud,
@@ -17,7 +18,10 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("cloudbox_demo_session")?.value === "true";
+
+  if (user || isDemo) {
     redirect("/drive");
   }
 

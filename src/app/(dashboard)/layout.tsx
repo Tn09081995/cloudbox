@@ -52,6 +52,9 @@ function DashboardLayoutContent({
             user.email?.split("@")[0] ||
             "Người dùng"
         );
+      } else {
+        setUserEmail("demo@cloudbox.app");
+        setDisplayName("Người Dùng Thử Nghiệm");
       }
     };
     fetchUser();

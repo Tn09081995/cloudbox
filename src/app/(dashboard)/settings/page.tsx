@@ -33,7 +33,12 @@ export default function SettingsPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        setEmail("demo@cloudbox.app");
+        setDisplayName("Người Dùng Thử Nghiệm");
+        setIsLoading(false);
+        return;
+      }
 
       setEmail(user.email || "");
 
@@ -70,7 +75,11 @@ export default function SettingsPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        toast.success("Đã cập nhật thông tin thành công! (Chế độ Demo)");
+        refreshQuota();
+        return;
+      }
 
       const { error } = await supabase
         .from("profiles")

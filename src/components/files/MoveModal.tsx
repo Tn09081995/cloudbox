@@ -13,6 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Folder as FolderIcon, Home, FolderInput, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Folder } from "@/types";
+import {
+  getDemoFiles,
+  saveDemoFiles,
+  getDemoFolders,
+  saveDemoFolders,
+} from "@/lib/demo-storage";
 import { toast } from "sonner";
 
 interface MoveModalProps {
@@ -45,6 +51,16 @@ export function MoveModal({
   const fetchFolders = useCallback(async () => {
     try {
       setIsLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        const demoFolders = getDemoFolders().filter((f) => f.deleted_at === null);
+        setFolders(demoFolders);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("folders")
         .select("*")
@@ -88,6 +104,34 @@ export function MoveModal({
 
     try {
       setIsSaving(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        if (type === "file") {
+          const files = getDemoFiles();
+          const target = files.find((f) => f.id === itemId);
+          if (target) {
+            target.folder_id = selectedFolderId;
+            target.updated_at = new Date().toISOString();
+            saveDemoFiles(files);
+          }
+        } else {
+          const folders = getDemoFolders();
+          const target = folders.find((f) => f.id === itemId);
+          if (target) {
+            target.parent_id = selectedFolderId;
+            target.updated_at = new Date().toISOString();
+            saveDemoFolders(folders);
+          }
+        }
+        toast.success(`Đã di chuyển "${itemName}" thành công!`);
+        onSuccess();
+        onClose();
+        return;
+      }
+
       if (type === "file") {
         const { error } = await supabase
           .from("files")
