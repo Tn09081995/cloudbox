@@ -75,6 +75,14 @@ export function UploadModal({
       data: { user },
     } = await supabase.auth.getUser();
 
+    // Check if Google Drive is available
+    let hasGoogleDrive = false;
+    try {
+      const statusRes = await fetch("/api/gdrive/status");
+      const statusData = await statusRes.json();
+      hasGoogleDrive = !!statusData.connected;
+    } catch {}
+
     const newItems: UploadFileItem[] = files.map((file) => ({
       id: nanoid(),
       file,
@@ -86,8 +94,8 @@ export function UploadModal({
 
     setQueue((prev) => [...prev, ...newItems]);
 
-    if (!user) {
-      // Demo upload simulation
+    if (!user && !hasGoogleDrive) {
+      // Demo upload simulation only when no Google Drive connected
       for (const item of newItems) {
         simulateDemoUpload(item);
       }
@@ -96,7 +104,7 @@ export function UploadModal({
 
     // Start uploading items sequentially or in parallel
     for (const item of newItems) {
-      uploadSingleFile(item, user.id);
+      uploadSingleFile(item, user?.id || "demo-user");
     }
   };
 
@@ -149,10 +157,6 @@ export function UploadModal({
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (!session) {
-        throw new Error("Không có phiên đăng nhập hợp lệ");
-      }
-
       setQueue((prev) =>
         prev.map((i) =>
           i.id === item.id ? { ...i, status: "uploading", progress: 0 } : i
@@ -181,6 +185,10 @@ export function UploadModal({
         }
       } catch {
         // Fallback to Supabase
+      }
+
+      if (!gdriveUploadUrl && !session) {
+        throw new Error("Không có phiên đăng nhập hợp lệ");
       }
 
       const xhr = new XMLHttpRequest();
@@ -217,16 +225,34 @@ export function UploadModal({
               const gdriveFileId = resData.id;
               const storagePath = `gdrive:${gdriveFileId}`;
 
-              const { error: dbError } = await supabase.from("files").insert({
-                owner_id: userId,
-                folder_id: currentFolderId,
-                name: safeName,
-                size: item.size,
-                mime_type: item.file.type || "application/octet-stream",
-                storage_path: storagePath,
-              });
+              if (!session) {
+                // Save to demo files
+                const demoFiles = getDemoFiles();
+                demoFiles.unshift({
+                  id: `gdrive-${nanoid(8)}`,
+                  owner_id: "demo-user",
+                  folder_id: currentFolderId,
+                  name: safeName,
+                  size: item.size,
+                  mime_type: item.file.type || "application/octet-stream",
+                  storage_path: storagePath,
+                  deleted_at: null,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                });
+                saveDemoFiles(demoFiles);
+              } else {
+                const { error: dbError } = await supabase.from("files").insert({
+                  owner_id: userId,
+                  folder_id: currentFolderId,
+                  name: safeName,
+                  size: item.size,
+                  mime_type: item.file.type || "application/octet-stream",
+                  storage_path: storagePath,
+                });
 
-              if (dbError) throw dbError;
+                if (dbError) throw dbError;
+              }
 
               setQueue((prev) =>
                 prev.map((i) =>
