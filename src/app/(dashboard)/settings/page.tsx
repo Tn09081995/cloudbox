@@ -215,13 +215,34 @@ export default function SettingsPage() {
             </div>
 
             {gdriveStatus.connected ? (
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
-                <p className="font-semibold">
-                  Tài khoản Google Drive 5 TB đã được kích hoạt thành công!
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Mọi tệp tải lên từ bây giờ sẽ được lưu trực tiếp vào Google Drive của bạn và quản lý thông qua CloudBox.
-                </p>
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+                  <p className="font-semibold">
+                    ✓ Kho lưu trữ Google Drive 5 TB đã kích hoạt thành công!
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Hệ thống lưu trữ tổng: <strong>5.000 GB</strong> • Mỗi tài khoản được cấp riêng <strong>200 GB</strong> độc lập, hoàn toàn bảo mật và không trùng lặp.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-muted/40 border">
+                    <span className="text-muted-foreground block text-[11px]">Hạn mức tài khoản của bạn</span>
+                    <span className="font-bold text-base text-foreground">200 GB</span>
+                    <span className="text-[11px] text-muted-foreground block mt-0.5">
+                      Đã dùng {formatBytes(usedBytes)} ({Math.min(100, Math.round((usedBytes / quotaBytes) * 100))}%)
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-muted/40 border">
+                    <span className="text-muted-foreground block text-[11px]">Dung lượng kho tổng Google 5TB</span>
+                    <span className="font-bold text-base text-foreground">
+                      {formatBytes(gdriveStatus.quota?.limit || 5497558138880)}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground block mt-0.5">
+                      Đã dùng {formatBytes(gdriveStatus.quota?.usage || 0)} (chia sẻ tối đa 25 tài khoản)
+                    </span>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-3 text-xs text-muted-foreground">

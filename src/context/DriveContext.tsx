@@ -93,23 +93,10 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = createClient();
 
+  const DEFAULT_USER_QUOTA = 214748364800; // 200 GB per account
+
   const fetchQuota = useCallback(async () => {
     try {
-      // 1. Check if Google Drive 5TB is connected
-      try {
-        const gdriveRes = await fetch("/api/gdrive/status");
-        if (gdriveRes.ok) {
-          const gdata = await gdriveRes.json();
-          if (gdata.connected && gdata.quota) {
-            setQuotaBytes(gdata.quota.limit);
-            setUsedBytes(gdata.quota.usage);
-            return;
-          }
-        }
-      } catch {
-        // Fallback
-      }
-
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -118,7 +105,7 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
         const demoFiles = getDemoFiles().filter((f) => f.deleted_at === null);
         const used = demoFiles.reduce((acc, f) => acc + f.size, 0);
         setUsedBytes(used);
-        setQuotaBytes(1073741824);
+        setQuotaBytes(DEFAULT_USER_QUOTA);
         return;
       }
 
@@ -132,7 +119,9 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
 
       if (!error && profile) {
         setUsedBytes(profile.used_bytes || 0);
-        setQuotaBytes(profile.quota_bytes || 1073741824);
+        setQuotaBytes(profile.quota_bytes || DEFAULT_USER_QUOTA);
+      } else {
+        setQuotaBytes(DEFAULT_USER_QUOTA);
       }
     } catch {
       // Quota fetch fallback
