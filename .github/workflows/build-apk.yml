@@ -50,15 +50,10 @@ jobs:
 
       - name: Verify and Copy APK
         run: |
-          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
-          echo "Found APK at: $APK_PATH"
-          if [ -z "$APK_PATH" ]; then
-            echo "Error: No APK found!"
-            find android/app/build -maxdepth 4 || true
-            exit 1
-          fi
           mkdir -p public
-          cp "$APK_PATH" public/cloudbox.apk
+          APK_FILE=$(find . -name "*.apk" -type f | head -n 1)
+          echo "Found APK: $APK_FILE"
+          cp "$APK_FILE" public/cloudbox.apk
           ls -lh public/cloudbox.apk
 
       - name: Upload APK Artifact
