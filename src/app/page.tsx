@@ -8,6 +8,8 @@ import {
   Zap,
   Share2,
   ArrowRight,
+  Smartphone,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -39,6 +41,14 @@ export default async function HomePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <a
+            href="/cloudbox.apk"
+            download="CloudBox.apk"
+            className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-colors"
+          >
+            <Smartphone className="h-4 w-4" />
+            <span>Tải App APK</span>
+          </a>
           <ThemeToggle />
           <Button asChild variant="ghost" className="rounded-xl">
             <Link href="/login">Đăng nhập</Link>
@@ -68,14 +78,20 @@ export default async function HomePage() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-          <Button asChild size="lg" className="rounded-2xl h-12 px-8 font-bold shadow-md gap-2 text-base">
+          <Button asChild size="lg" className="rounded-2xl h-12 px-8 font-bold shadow-md gap-2 text-base w-full sm:w-auto">
             <Link href="/register">
               <span>Trải nghiệm ngay</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="rounded-2xl h-12 px-8 font-semibold text-base">
+          <Button asChild variant="outline" size="lg" className="rounded-2xl h-12 px-8 font-semibold text-base w-full sm:w-auto">
             <Link href="/login">Đăng nhập tài khoản</Link>
+          </Button>
+          <Button asChild variant="secondary" size="lg" className="rounded-2xl h-12 px-6 font-semibold text-base gap-2 border shadow-sm w-full sm:w-auto">
+            <a href="/cloudbox.apk" download="CloudBox.apk">
+              <Smartphone className="h-4 w-4 text-primary" />
+              <span>Tải APK Android</span>
+            </a>
           </Button>
         </div>
 
