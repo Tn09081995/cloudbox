@@ -6,10 +6,10 @@ export async function createClient() {
   const cookieStore = await cookies();
 
   const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummyprojectid.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://avssqxjtmcrbsmgoudod.supabase.co";
   const supabaseAnonKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummyKeyForBuilding";
+    "sb_publishable_GOm4to5aHKHp9whcCCSBpA_kqfla5VG";
 
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
