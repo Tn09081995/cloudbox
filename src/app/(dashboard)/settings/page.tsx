@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Check,
   Loader2,
+  Smartphone,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/lib/utils";
@@ -324,6 +326,38 @@ export default function SettingsPage() {
                   {formatBytes(quotaBytes)}
                 </span>
               </div>
+            </div>
+          </div>
+
+          {/* Android App APK Card */}
+          <div className="p-6 rounded-2xl border border-primary/20 bg-gradient-to-br from-blue-500/10 via-card to-card shadow-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <Smartphone className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-base">App Android (APK)</h3>
+                <p className="text-xs text-muted-foreground">Tải về và cài đặt trực tiếp</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Sử dụng ứng dụng Android native để tải ảnh, video và quản lý tệp tin trực tiếp từ điện thoại với trải nghiệm mượt mà.
+            </p>
+
+            <a
+              href="/cloudbox.apk"
+              download="CloudBox.apk"
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary py-2.5 px-4 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 transition-all"
+            >
+              <Download className="h-4 w-4" />
+              <span>Tải file APK (Android)</span>
+            </a>
+
+            <div className="text-[11px] text-muted-foreground space-y-1 pt-1">
+              <p>💡 <strong>Hướng dẫn cài đặt:</strong></p>
+              <p>1. Tải file <code>CloudBox.apk</code> về điện thoại.</p>
+              <p>2. Mở file và chọn &quot;Cài đặt&quot; (cho phép nguồn này nếu máy hỏi).</p>
             </div>
           </div>
         </div>

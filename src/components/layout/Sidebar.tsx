@@ -11,6 +11,8 @@ import {
   Upload,
   FolderPlus,
   X,
+  Smartphone,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuotaUsageBar } from "@/components/quota/QuotaUsageBar";
@@ -153,8 +155,27 @@ export function Sidebar({
           })}
         </nav>
 
+        {/* Android App Download Banner */}
+        <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-blue-500/10 via-primary/5 to-transparent p-3 mt-4 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Smartphone className="h-4 w-4 text-primary" />
+            <span className="text-xs font-bold text-foreground">App Android (APK)</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-2 leading-relaxed">
+            Cài đặt trực tiếp lên điện thoại để đồng bộ ảnh và tệp nhanh chóng.
+          </p>
+          <a
+            href="/cloudbox.apk"
+            download="CloudBox.apk"
+            className="flex items-center justify-center gap-1.5 w-full rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Tải App APK</span>
+          </a>
+        </div>
+
         {/* Storage Quota Widget */}
-        <div className="pt-4 border-t mt-auto">
+        <div className="pt-3 border-t mt-auto">
           <QuotaUsageBar usedBytes={usedBytes} quotaBytes={quotaBytes} />
         </div>
       </aside>

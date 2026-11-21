@@ -1,0 +1,21 @@
+{
+  "name": "CloudBox - Lưu Trữ Đám Mây Cá Nhân",
+  "short_name": "CloudBox",
+  "description": "Nền tảng lưu trữ đám mây cá nhân 5 TB tốc độ cao",
+  "start_url": "/drive",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

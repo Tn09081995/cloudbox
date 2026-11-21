@@ -9,6 +9,7 @@ import {
   ArrowUpDown,
   LogOut,
   User as UserIcon,
+  Smartphone,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -184,6 +185,17 @@ export function Header({
             <List className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Download Android APK Button */}
+        <a
+          href="/cloudbox.apk"
+          download="CloudBox.apk"
+          className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-all shadow-sm"
+          title="Tải ứng dụng Android (APK)"
+        >
+          <Smartphone className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Tải APK</span>
+        </a>
 
         {/* Dark Mode Toggle */}
         <ThemeToggle />
