@@ -292,6 +292,10 @@ export function UploadModal({
         // ----------------------------------------------------
         // DIRECT UPLOAD TO SUPABASE STORAGE
         // ----------------------------------------------------
+        if (!session) {
+          throw new Error("Không có phiên đăng nhập hợp lệ");
+        }
+
         const uniqueSuffix = `${Date.now()}_${nanoid(6)}`;
         const folderSegment = currentFolderId ? currentFolderId : "root";
         const storagePath = `${userId}/${folderSegment}/${uniqueSuffix}_${safeName}`;
