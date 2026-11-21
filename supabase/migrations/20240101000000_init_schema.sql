@@ -173,7 +173,7 @@ BEGIN
     VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
-        1073741824, -- 1 GB
+        214748364800, -- 200 GB default quota per user
         0
     )
     ON CONFLICT (id) DO NOTHING;
