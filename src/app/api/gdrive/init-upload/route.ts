@@ -20,10 +20,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const origin = request.headers.get("origin") || undefined;
+
     const uploadUrl = await createGoogleDriveUploadSession({
       name,
       mimeType: mimeType || "application/octet-stream",
       size,
+      origin,
     });
 
     if (!uploadUrl) {

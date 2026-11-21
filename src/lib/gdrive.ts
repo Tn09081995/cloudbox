@@ -47,6 +47,7 @@ export async function createGoogleDriveUploadSession(params: {
   name: string;
   mimeType: string;
   size?: number;
+  origin?: string;
 }): Promise<string | null> {
   const auth = getGoogleOAuthClient();
   if (!auth) return null;
@@ -69,6 +70,10 @@ export async function createGoogleDriveUploadSession(params: {
     "Content-Type": "application/json; charset=UTF-8",
     "X-Upload-Content-Type": params.mimeType || "application/octet-stream",
   };
+
+  if (params.origin) {
+    headers["Origin"] = params.origin;
+  }
 
   if (params.size) {
     headers["X-Upload-Content-Length"] = params.size.toString();

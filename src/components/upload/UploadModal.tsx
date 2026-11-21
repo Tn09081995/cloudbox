@@ -261,18 +261,21 @@ export function UploadModal({
               );
               toast.success(`Đã lưu "${safeName}" lên Google Drive 5TB!`);
               onUploadSuccess();
-            } catch {
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : "Lỗi lưu thông tin tệp";
+              console.error("Upload save error:", err);
               setQueue((prev) =>
                 prev.map((i) =>
                   i.id === item.id
                     ? {
                         ...i,
                         status: "error",
-                        errorMessage: "Lỗi lưu thông tin tệp",
+                        errorMessage: `Lỗi lưu: ${msg}`,
                       }
                     : i
                 )
               );
+              toast.error(`Lỗi lưu thông tin tệp: ${msg}`);
             }
           } else {
             setQueue((prev) =>
