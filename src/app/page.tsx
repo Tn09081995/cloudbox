@@ -9,7 +9,6 @@ import {
   Share2,
   ArrowRight,
   Smartphone,
-  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
