@@ -48,11 +48,17 @@ jobs:
           name: gradle-build-log
           path: gradle-build.log
 
-      - name: Verify APK
+      - name: Verify and Copy APK
         run: |
-          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          echo "Found APK at: $APK_PATH"
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: No APK found!"
+            find android/app/build -maxdepth 4 || true
+            exit 1
+          fi
           mkdir -p public
-          cp android/app/build/outputs/apk/debug/app-debug.apk public/cloudbox.apk
+          cp "$APK_PATH" public/cloudbox.apk
           ls -lh public/cloudbox.apk
 
       - name: Upload APK Artifact
