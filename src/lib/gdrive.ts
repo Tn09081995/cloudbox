@@ -40,6 +40,57 @@ export function getDriveClient() {
 }
 
 /**
+ * Finds or creates a folder on Google Drive
+ */
+export async function getOrCreateFolder(
+  folderName: string,
+  parentFolderId?: string
+): Promise<string | null> {
+  const drive = getDriveClient();
+  if (!drive) return null;
+
+  try {
+    let query = `name = '${folderName.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    if (parentFolderId) {
+      query += ` and '${parentFolderId}' in parents`;
+    }
+
+    const res = await drive.files.list({
+      q: query,
+      fields: "files(id, name)",
+      spaces: "drive",
+    });
+
+    if (res.data.files && res.data.files.length > 0) {
+      return res.data.files[0].id || null;
+    }
+
+    const fileMetadata: {
+      name: string;
+      mimeType: string;
+      parents?: string[];
+    } = {
+      name: folderName,
+      mimeType: "application/vnd.google-apps.folder",
+    };
+
+    if (parentFolderId) {
+      fileMetadata.parents = [parentFolderId];
+    }
+
+    const created = await drive.files.create({
+      requestBody: fileMetadata,
+      fields: "id",
+    });
+
+    return created.data.id || null;
+  } catch (err) {
+    console.error("Error in getOrCreateFolder:", err);
+    return null;
+  }
+}
+
+/**
  * Initiates a Google Drive Resumable Upload session.
  * The returned session URI allows direct browser-to-Google upload without passing through Vercel.
  */
@@ -48,6 +99,7 @@ export async function createGoogleDriveUploadSession(params: {
   mimeType: string;
   size?: number;
   origin?: string;
+  userEmail?: string;
 }): Promise<string | null> {
   const auth = getGoogleOAuthClient();
   if (!auth) return null;
@@ -55,14 +107,26 @@ export async function createGoogleDriveUploadSession(params: {
   const { token } = await auth.getAccessToken();
   if (!token) return null;
 
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  // 1. Get or create master root folder "CloudBox_Storage"
+  let targetFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID || null;
+  if (!targetFolderId) {
+    targetFolderId = await getOrCreateFolder("CloudBox_Storage");
+  }
+
+  // 2. Get or create separate folder for this user account (e.g. "tuannguyen95714@gmail.com")
+  if (params.userEmail && targetFolderId) {
+    const userFolderId = await getOrCreateFolder(params.userEmail, targetFolderId);
+    if (userFolderId) {
+      targetFolderId = userFolderId;
+    }
+  }
 
   const metadata: { name: string; parents?: string[] } = {
     name: params.name,
   };
 
-  if (folderId) {
-    metadata.parents = [folderId];
+  if (targetFolderId) {
+    metadata.parents = [targetFolderId];
   }
 
   const headers: Record<string, string> = {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isGoogleDriveConfigured, createGoogleDriveUploadSession } from "@/lib/gdrive";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const userEmail =
+      user?.email || (user?.id ? `user_${user.id.slice(0, 8)}` : "Demo_User");
+
     const origin = request.headers.get("origin") || undefined;
 
     const uploadUrl = await createGoogleDriveUploadSession({
@@ -27,6 +36,7 @@ export async function POST(request: Request) {
       mimeType: mimeType || "application/octet-stream",
       size,
       origin,
+      userEmail,
     });
 
     if (!uploadUrl) {
