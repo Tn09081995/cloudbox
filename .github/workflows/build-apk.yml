@@ -42,16 +42,9 @@ jobs:
       - name: Build Android Debug APK
         working-directory: android
         run: |
-          gradle assembleDebug --stacktrace 2>&1 | tee ../gradle-build.log
+          gradle assembleDebug --stacktrace
 
-      - name: Upload Build Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-build-log
-          path: gradle-build.log
-
-      - name: Verify and Copy APK
+      - name: Deploy APK to public and Push
         run: |
           mkdir -p public
           APK_FILE=$(find . -name "*.apk" -type f | head -n 1)
@@ -59,31 +52,8 @@ jobs:
           cp "$APK_FILE" public/cloudbox.apk
           ls -lh public/cloudbox.apk
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: CloudBox-Android-APK
-          path: public/cloudbox.apk
-          if-no-files-found: error
-
-      - name: Commit and Push APK to main
-        run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add public/cloudbox.apk
-          git commit -m "build: update Android APK in public/cloudbox.apk [skip ci]" || echo "No changes to commit"
-          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main || git push origin main
-
-      - name: Create or Update GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.0
-          name: "CloudBox Android App v1.0.0"
-          body: |
-            ### 📱 CloudBox Android App APK (v1.0.0)
-            - Ứng dụng lưu trữ đám mây 5 TB cá nhân.
-            - Hỗ trợ tải ảnh/video trực tiếp từ thư viện điện thoại.
-            - Đồng bộ tức thì với Google Drive và Supabase.
-          files: public/cloudbox.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git commit -m "build: add cloudbox.apk to public [skip ci]" || echo "No changes to commit"
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main
