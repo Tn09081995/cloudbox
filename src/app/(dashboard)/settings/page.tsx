@@ -1,365 +1,639 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useDrive } from "@/context/DriveContext";
-import { createClient } from "@/lib/supabase/client";
+import React, { useState } from "react";
+import { useTheme } from "next-themes";
+import {
+  User,
+  Palette,
+  ShieldCheck,
+  HardDrive,
+  Smartphone,
+  RotateCcw,
+  Sun,
+  Moon,
+  Laptop,
+  QrCode,
+  LogOut,
+  Download,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { QuotaUsageBar } from "@/components/quota/QuotaUsageBar";
-import {
-  User,
-  Settings,
-  HardDrive,
-  ShieldCheck,
-  Check,
-  Loader2,
-  Smartphone,
-  Download,
-} from "lucide-react";
+import { useStorageUsage, useFileMutations, useFolderFiles } from "@/lib/hooks/useFiles";
+import { formatBytes, formatRelativeDate } from "@/lib/utils/formatters";
+import { FILE_KIND_CONFIGS } from "@/lib/utils/file-types";
+import { vi } from "@/lib/i18n/vi";
 import { toast } from "sonner";
-import { formatBytes } from "@/lib/utils";
+
+type SettingsTab = "profile" | "appearance" | "security" | "storage" | "apps";
 
 export default function SettingsPage() {
-  const { usedBytes, quotaBytes, refreshQuota } = useDrive();
-  const [email, setEmail] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [gdriveStatus, setGdriveStatus] = useState<{
-    connected: boolean;
-    quota?: { limit: number; usage: number };
-  }>({ connected: false });
-  const supabase = createClient();
+  const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+  const { theme, setTheme } = useTheme();
+  const { data: storage } = useStorageUsage();
+  const { resetData } = useFileMutations();
+  const { data: allNodes = [] } = useFolderFiles(null);
 
-  const fetchProfile = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  // Profile Form State
+  const [fullName, setFullName] = useState("Nguyễn Minh Anh");
+  const [email, setEmail] = useState("minhanh.nguyen@cloudbox.vn");
+  const role = "Cá nhân / Quản trị viên";
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-      if (!user) {
-        setEmail("demo@cloudbox.app");
-        setDisplayName("Người Dùng Thử Nghiệm");
-        setIsLoading(false);
-        return;
-      }
+  // Appearance State
+  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
 
-      setEmail(user.email || "");
+  // Security State
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [show2FASetup, setShow2FASetup] = useState(false);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("id", user.id)
-        .maybeSingle();
+  // Storage data
+  const used = storage?.usedBytes || 18400000;
+  const quota = storage?.totalBytes || 214748364800; // 200 GB
+  const percentage = Math.max(1, Math.round((used / quota) * 100));
 
-      const profileData = profile as { display_name: string | null } | null;
+  // Find 5 largest files
+  const largestFiles = [...allNodes]
+    .filter((n) => n.kind !== "folder")
+    .sort((a, b) => b.size - a.size)
+    .slice(0, 5);
 
-      setDisplayName(
-        profileData?.display_name ||
-          user.user_metadata?.full_name ||
-          user.email?.split("@")[0] ||
-          ""
-      );
-    } catch {
-      toast.error("Không thể tải thông tin tài khoản");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [supabase]);
-
-  useEffect(() => {
-    fetchProfile();
-    fetch("/api/gdrive/status")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data) setGdriveStatus(data);
-      })
-      .catch(() => {});
-  }, [fetchProfile]);
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      setIsSaving(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    setIsSavingProfile(true);
+    setTimeout(() => {
+      setIsSavingProfile(false);
+      toast.success(vi.settings.profileSaved);
+    }, 400);
+  };
 
-      if (!user) {
-        toast.success("Đã cập nhật thông tin thành công! (Chế độ Demo)");
-        refreshQuota();
-        return;
+  const handleResetData = async () => {
+    if (confirm("Bạn có chắc chắn muốn đặt lại toàn bộ dữ liệu mẫu ban đầu không? Mọi thay đổi sẽ được làm mới.")) {
+      try {
+        await resetData();
+        toast.success(vi.settings.resetSuccess);
+      } catch {
+        toast.error("Không thể đặt lại dữ liệu");
       }
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          display_name: displayName.trim(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      toast.success("Đã cập nhật thông tin thành công!");
-      refreshQuota();
-    } catch {
-      toast.error("Không thể cập nhật thông tin");
-    } finally {
-      setIsSaving(false);
     }
   };
 
+  const handleLogoutOtherSessions = () => {
+    toast.success("Đã đăng xuất khỏi tất cả 2 thiết bị khác thành công!");
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12 font-sans">
       {/* Page Header */}
-      <div className="border-b pb-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Settings className="h-6 w-6 text-primary" />
-          <span>Cài đặt tài khoản</span>
+      <div className="border-b border-border pb-4">
+        <h1 className="text-xl md:text-2xl font-bold text-foreground">
+          {vi.settings.title}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Quản lý hồ sơ cá nhân và dung lượng lưu trữ của bạn
+        <p className="text-xs md:text-sm text-muted-foreground mt-1">
+          {vi.settings.subtitle}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column: Profile settings */}
-        <div className="md:col-span-2 space-y-6">
-          <div className="p-6 rounded-2xl border bg-card shadow-sm space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <User className="h-5 w-5" />
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-border pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("profile")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-btn text-xs md:text-sm font-semibold transition-colors whitespace-nowrap ${
+            activeTab === "profile"
+              ? "bg-primary text-white shadow-xs"
+              : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+          }`}
+        >
+          <User className="h-4 w-4" />
+          <span>{vi.settings.tabs.profile}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("appearance")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-btn text-xs md:text-sm font-semibold transition-colors whitespace-nowrap ${
+            activeTab === "appearance"
+              ? "bg-primary text-white shadow-xs"
+              : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+          }`}
+        >
+          <Palette className="h-4 w-4" />
+          <span>{vi.settings.tabs.appearance}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("security")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-btn text-xs md:text-sm font-semibold transition-colors whitespace-nowrap ${
+            activeTab === "security"
+              ? "bg-primary text-white shadow-xs"
+              : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+          }`}
+        >
+          <ShieldCheck className="h-4 w-4" />
+          <span>{vi.settings.tabs.security}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("storage")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-btn text-xs md:text-sm font-semibold transition-colors whitespace-nowrap ${
+            activeTab === "storage"
+              ? "bg-primary text-white shadow-xs"
+              : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+          }`}
+        >
+          <HardDrive className="h-4 w-4" />
+          <span>{vi.settings.tabs.storage}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("apps")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-btn text-xs md:text-sm font-semibold transition-colors whitespace-nowrap ${
+            activeTab === "apps"
+              ? "bg-primary text-white shadow-xs"
+              : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+          }`}
+        >
+          <Smartphone className="h-4 w-4" />
+          <span>{vi.settings.tabs.apps}</span>
+        </button>
+      </div>
+
+      {/* Tab 1: Profile */}
+      {activeTab === "profile" && (
+        <div className="space-y-6 animate-in fade-in duration-cb max-w-2xl">
+          <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-primary-soft text-primary font-bold text-xl flex items-center justify-center border-2 border-primary/20">
+                NA
               </div>
               <div>
-                <h3 className="font-semibold text-base">Thông tin cá nhân</h3>
-                <p className="text-xs text-muted-foreground">
-                  Tên hiển thị và địa chỉ email của bạn
-                </p>
-              </div>
-            </div>
-
-            {isLoading ? (
-              <div className="flex items-center justify-center py-6 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                <span>Đang tải...</span>
-              </div>
-            ) : (
-              <form onSubmit={handleSaveProfile} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Địa chỉ Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    disabled
-                    className="rounded-xl bg-muted/40 cursor-not-allowed"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Email đăng nhập được quản lý bởi hệ thống bảo mật Supabase Auth.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="display-name">Tên hiển thị</Label>
-                  <Input
-                    id="display-name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="VD: Nguyễn Văn A"
-                    className="rounded-xl"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                  className="rounded-xl gap-2 mt-2"
+                <h3 className="font-semibold text-base text-foreground">
+                  {fullName}
+                </h3>
+                <p className="text-xs text-muted-foreground">{email}</p>
+                <button
+                  type="button"
+                  onClick={() => toast.info("Tính năng đổi ảnh đại diện (Chế độ UI)")}
+                  className="mt-2 text-xs text-primary hover:underline font-medium"
                 >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="h-4 w-4" />
-                  )}
-                  <span>Lưu thay đổi</span>
-                </Button>
-              </form>
-            )}
-          </div>
-
-          {/* Google Drive 5TB Integration Card */}
-          <div className="p-6 rounded-2xl border bg-card shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                  <HardDrive className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base flex items-center gap-2">
-                    <span>Google Drive 5 TB</span>
-                    {gdriveStatus.connected ? (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
-                        Đang kết nối
-                      </span>
-                    ) : (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold">
-                        Chưa kết nối
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Sử dụng gói Google Drive 5.000 GB của bạn làm kho chứa tệp
-                  </p>
-                </div>
+                  Thay đổi ảnh đại diện
+                </button>
               </div>
             </div>
 
-            {gdriveStatus.connected ? (
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
-                  <p className="font-semibold">
-                    ✓ Kho lưu trữ Google Drive 5 TB đã kích hoạt thành công!
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Hệ thống lưu trữ tổng: <strong>5.000 GB</strong> • Mỗi tài khoản được cấp riêng <strong>200 GB</strong> độc lập, hoàn toàn bảo mật và không trùng lặp.
-                  </p>
-                </div>
+            <form onSubmit={handleSaveProfile} className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="fullname" className="text-xs font-semibold">
+                  {vi.settings.fullName}
+                </Label>
+                <Input
+                  id="fullname"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="rounded-btn text-xs h-9 bg-surface-2"
+                />
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-muted/40 border">
-                    <span className="text-muted-foreground block text-[11px]">Hạn mức tài khoản của bạn</span>
-                    <span className="font-bold text-base text-foreground">200 GB</span>
-                    <span className="text-[11px] text-muted-foreground block mt-0.5">
-                      Đã dùng {formatBytes(usedBytes)} ({Math.min(100, Math.round((usedBytes / quotaBytes) * 100))}%)
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted/40 border">
-                    <span className="text-muted-foreground block text-[11px]">Dung lượng kho tổng Google 5TB</span>
-                    <span className="font-bold text-base text-foreground">
-                      {formatBytes(gdriveStatus.quota?.limit || 5497558138880)}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground block mt-0.5">
-                      Đã dùng {formatBytes(gdriveStatus.quota?.usage || 0)} (chia sẻ tối đa 25 tài khoản)
-                    </span>
-                  </div>
-                </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-semibold">
+                  {vi.settings.email}
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="rounded-btn text-xs h-9 bg-surface-2"
+                />
               </div>
-            ) : (
-              <div className="space-y-3 text-xs text-muted-foreground">
-                <p>
-                  Để kết nối tài khoản Google 5 TB của bạn, hãy thêm các biến sau vào file <code>.env.local</code>:
-                </p>
-                <pre className="p-3 bg-muted/60 rounded-xl font-mono text-[11px] overflow-x-auto select-all">
-                  GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com{"\n"}
-                  GOOGLE_CLIENT_SECRET=your-google-client-secret{"\n"}
-                  GOOGLE_REFRESH_TOKEN=your-google-oauth-refresh-token{"\n"}
-                  GOOGLE_DRIVE_FOLDER_ID=your-optional-folder-id
-                </pre>
-                <p className="text-[11px]">
-                  💡 Sau khi thêm các biến này vào <code>.env.local</code> và khởi động lại, CloudBox sẽ tự động dùng Google Drive 5 TB thay vì bộ nhớ mặc định!
-                </p>
-              </div>
-            )}
-          </div>
 
-          {/* Security Info */}
-          <div className="p-6 rounded-2xl border bg-card shadow-sm space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                <ShieldCheck className="h-5 w-5" />
+              <div className="space-y-1.5">
+                <Label htmlFor="role" className="text-xs font-semibold">
+                  Vai trò / Gói dịch vụ
+                </Label>
+                <Input
+                  id="role"
+                  value={role}
+                  disabled
+                  className="rounded-btn text-xs h-9 bg-surface-2 opacity-80 cursor-not-allowed"
+                />
               </div>
-              <div>
-                <h3 className="font-semibold text-base">Bảo mật & Quyền riêng tư</h3>
-                <p className="text-xs text-muted-foreground">
-                  Hệ thống bảo vệ dữ liệu cá nhân theo tiêu chuẩn cao cấp
-                </p>
-              </div>
-            </div>
 
-            <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-5 pt-2">
-              <li>
-                Bộ nhớ riêng tư (Private Bucket): Không ai có thể truy cập tệp khi chưa có liên kết ký mã hoặc chia sẻ.
-              </li>
-              <li>
-                Row Level Security (RLS) kích hoạt trên mọi bảng trong cơ sở dữ liệu Postgres.
-              </li>
-              <li>
-                Tải lên trực tiếp từ trình duyệt giúp loại bỏ giới hạn 4.5MB của serverless functions.
-              </li>
-            </ul>
+              <Button
+                type="submit"
+                disabled={isSavingProfile}
+                className="rounded-btn bg-primary text-white hover:bg-primary-ink text-xs font-semibold h-9 px-5 mt-2 shadow-xs"
+              >
+                {isSavingProfile ? "Đang lưu..." : vi.settings.saveChanges}
+              </Button>
+            </form>
           </div>
         </div>
+      )}
 
-        {/* Right Column: Quota overview */}
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl border bg-card shadow-sm space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <HardDrive className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-base">Gói dung lượng</h3>
-                <p className="text-xs text-muted-foreground">Gói cá nhân miễn phí</p>
+      {/* Tab 2: Appearance */}
+      {activeTab === "appearance" && (
+        <div className="space-y-6 animate-in fade-in duration-cb max-w-2xl">
+          <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-6">
+            <div>
+              <h3 className="font-semibold text-sm text-foreground mb-1">
+                {vi.settings.theme}
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Tùy chỉnh giao diện hiển thị phù hợp với thị giác của bạn
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Light Mode */}
+                <button
+                  type="button"
+                  onClick={() => setTheme("light")}
+                  className={`flex flex-col items-center justify-center p-4 rounded-card border-2 transition-all ${
+                    theme === "light"
+                      ? "border-primary bg-primary-soft/20 text-primary shadow-xs"
+                      : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground bg-surface-2"
+                  }`}
+                >
+                  <Sun className="h-6 w-6 mb-2" />
+                  <span className="text-xs font-semibold">{vi.settings.themeLight}</span>
+                </button>
+
+                {/* Dark Mode */}
+                <button
+                  type="button"
+                  onClick={() => setTheme("dark")}
+                  className={`flex flex-col items-center justify-center p-4 rounded-card border-2 transition-all ${
+                    theme === "dark"
+                      ? "border-primary bg-primary-soft/20 text-primary shadow-xs"
+                      : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground bg-surface-2"
+                  }`}
+                >
+                  <Moon className="h-6 w-6 mb-2" />
+                  <span className="text-xs font-semibold">{vi.settings.themeDark}</span>
+                </button>
+
+                {/* System Mode */}
+                <button
+                  type="button"
+                  onClick={() => setTheme("system")}
+                  className={`flex flex-col items-center justify-center p-4 rounded-card border-2 transition-all ${
+                    theme === "system"
+                      ? "border-primary bg-primary-soft/20 text-primary shadow-xs"
+                      : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground bg-surface-2"
+                  }`}
+                >
+                  <Laptop className="h-6 w-6 mb-2" />
+                  <span className="text-xs font-semibold">{vi.settings.themeSystem}</span>
+                </button>
               </div>
             </div>
 
-            <QuotaUsageBar usedBytes={usedBytes} quotaBytes={quotaBytes} />
+            <div className="pt-4 border-t border-border">
+              <h3 className="font-semibold text-sm text-foreground mb-1">
+                {vi.settings.density}
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Khoảng cách giữa các hàng và thẻ tệp tin
+              </p>
 
-            <div className="pt-2 border-t space-y-2 text-xs text-muted-foreground">
-              <div className="flex justify-between">
-                <span>Dung lượng đã dùng:</span>
-                <span className="font-semibold text-foreground">
-                  {formatBytes(usedBytes)}
-                </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDensity("comfortable")}
+                  className={`flex items-center gap-3 p-3.5 rounded-card border-2 text-left transition-all ${
+                    density === "comfortable"
+                      ? "border-primary bg-primary-soft/20 text-primary shadow-xs"
+                      : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground bg-surface-2"
+                  }`}
+                >
+                  <div className="h-8 w-8 rounded-btn bg-surface flex items-center justify-center border font-bold">
+                    C
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold">{vi.settings.densityComfortable}</p>
+                    <p className="text-[11px] text-muted-foreground">Khoảng cách thoáng, dễ nhìn</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDensity("compact")}
+                  className={`flex items-center gap-3 p-3.5 rounded-card border-2 text-left transition-all ${
+                    density === "compact"
+                      ? "border-primary bg-primary-soft/20 text-primary shadow-xs"
+                      : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground bg-surface-2"
+                  }`}
+                >
+                  <div className="h-8 w-8 rounded-btn bg-surface flex items-center justify-center border font-bold">
+                    G
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold">{vi.settings.densityCompact}</p>
+                    <p className="text-[11px] text-muted-foreground">Hiển thị nhiều mục cùng lúc hơn</p>
+                  </div>
+                </button>
               </div>
-              <div className="flex justify-between">
-                <span>Còn trống:</span>
-                <span className="font-semibold text-foreground">
-                  {formatBytes(Math.max(0, quotaBytes - usedBytes))}
-                </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Security */}
+      {activeTab === "security" && (
+        <div className="space-y-6 animate-in fade-in duration-cb max-w-3xl">
+          {/* 2FA Section */}
+          <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-sm text-foreground">
+                  {vi.settings.twoFactor}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Bảo vệ tài khoản bằng mã xác thực 6 chữ số từ ứng dụng Google Authenticator.
+                </p>
               </div>
-              <div className="flex justify-between">
-                <span>Tổng mức hạn:</span>
-                <span className="font-semibold text-foreground">
-                  {formatBytes(quotaBytes)}
-                </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextState = !is2FAEnabled;
+                  setIs2FAEnabled(nextState);
+                  if (nextState) setShow2FASetup(true);
+                  else setShow2FASetup(false);
+                  toast.success(nextState ? "Đã bật xác thực 2 lớp" : "Đã tắt xác thực 2 lớp");
+                }}
+                className={`w-12 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
+                  is2FAEnabled ? "bg-primary" : "bg-muted"
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
+                    is2FAEnabled ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {show2FASetup && (
+              <div className="p-4 rounded-btn bg-surface-2 border border-border space-y-3 mt-3 animate-in fade-in">
+                <div className="flex items-start gap-4">
+                  <div className="h-20 w-20 rounded bg-white p-2 border flex items-center justify-center">
+                    <QrCode className="h-16 w-16 text-black" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-foreground">
+                      Quét mã QR bằng ứng dụng Authenticator
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Hoặc nhập mã khóa bí mật thủ công:
+                    </p>
+                    <code className="text-xs font-mono font-bold bg-muted px-2 py-0.5 rounded text-primary inline-block">
+                      CLBX-7789-9941-KMXA
+                    </code>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Active Sessions Section */}
+          <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-sm text-foreground">
+                  {vi.settings.activeSessions}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Các thiết bị và trình duyệt hiện đang đăng nhập vào tài khoản của bạn
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogoutOtherSessions}
+                className="text-xs font-semibold rounded-btn border-border hover:bg-surface-2"
+              >
+                <LogOut className="h-3.5 w-3.5 mr-1 text-semantic-danger" />
+                <span>Đăng xuất thiết bị khác</span>
+              </Button>
+            </div>
+
+            <div className="divide-y divide-border pt-1">
+              {/* Session 1 */}
+              <div className="py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-btn bg-primary-soft text-primary flex items-center justify-center">
+                    <Laptop className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-foreground">
+                        Windows 11 · Chrome 130
+                      </p>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-semantic-success/10 text-semantic-success font-bold">
+                        Thiết bị này
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Hà Nội, Việt Nam · IP: 14.162.18.9 · Đang hoạt động
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Session 2 */}
+              <div className="py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-btn bg-surface-2 text-muted-foreground flex items-center justify-center">
+                    <Smartphone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      iPhone 15 Pro · Safari 18
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      TP. Hồ Chí Minh · IP: 113.190.22.5 · 2 giờ trước
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Storage */}
+      {activeTab === "storage" && (
+        <div className="space-y-6 animate-in fade-in duration-cb max-w-3xl">
+          {/* Quota Overview Card */}
+          <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-sm text-foreground">
+                  {vi.settings.storageUsage}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Gói cá nhân 200 GB tiêu chuẩn
+                </p>
+              </div>
+              <span className="text-xs font-mono font-bold text-foreground">
+                {formatBytes(used)} / {formatBytes(quota)} ({percentage}%)
+              </span>
+            </div>
+
+            {/* Segmented Breakdown Bar */}
+            <div className="h-3.5 w-full rounded-full bg-surface-2 border border-border overflow-hidden flex">
+              <div style={{ width: "45%" }} className="bg-blue-500" title="Hình ảnh: 8,4 MB" />
+              <div style={{ width: "23%" }} className="bg-purple-500" title="Video: 4,2 MB" />
+              <div style={{ width: "17%" }} className="bg-emerald-500" title="Tài liệu: 3,1 MB" />
+              <div style={{ width: "15%" }} className="bg-amber-500" title="Tệp nén: 2,7 MB" />
+            </div>
+
+            {/* Legend */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-blue-500 flex-shrink-0" />
+                <span className="text-muted-foreground">Hình ảnh: 8,4 MB</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-purple-500 flex-shrink-0" />
+                <span className="text-muted-foreground">Video: 4,2 MB</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-emerald-500 flex-shrink-0" />
+                <span className="text-muted-foreground">Tài liệu: 3,1 MB</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-amber-500 flex-shrink-0" />
+                <span className="text-muted-foreground">Tệp nén: 2,7 MB</span>
               </div>
             </div>
           </div>
 
-          {/* Android App APK Card */}
-          <div className="p-6 rounded-2xl border border-primary/20 bg-gradient-to-br from-blue-500/10 via-card to-card shadow-sm space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <Smartphone className="h-5 w-5" />
+          {/* Largest Files Card */}
+          <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-4">
+            <h3 className="font-semibold text-sm text-foreground">
+              {vi.settings.largestFiles}
+            </h3>
+            <div className="divide-y divide-border">
+              {largestFiles.map((file) => {
+                const cfg = FILE_KIND_CONFIGS[file.kind] || FILE_KIND_CONFIGS.other;
+                return (
+                  <div
+                    key={file.id}
+                    className="py-3 flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="h-8 w-8 rounded flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: cfg.bgTile, color: cfg.color }}
+                      >
+                        <span className="text-[9px] font-bold uppercase font-mono">
+                          {file.name.split(".").pop()?.slice(0, 3) || "DAT"}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground truncate">{file.name}</p>
+                        <p className="text-[11px] text-muted-foreground font-mono">
+                          {formatRelativeDate(file.updated_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-mono tabular-nums font-semibold text-foreground flex-shrink-0">
+                      {formatBytes(file.size)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Apps & PWA */}
+      {activeTab === "apps" && (
+        <div className="space-y-6 animate-in fade-in duration-cb max-w-2xl">
+          <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-card bg-primary-soft text-primary flex items-center justify-center flex-shrink-0">
+                <Smartphone className="h-6 w-6" />
               </div>
-              <div>
-                <h3 className="font-semibold text-base">App Android (APK)</h3>
-                <p className="text-xs text-muted-foreground">Tải về và cài đặt trực tiếp</p>
+              <div className="space-y-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  Ứng dụng Android APK
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Cài đặt trực tiếp ứng dụng CloudBox lên điện thoại Android để đồng bộ ảnh và tệp nhanh chóng.
+                </p>
               </div>
             </div>
-
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Sử dụng ứng dụng Android native để tải ảnh, video và quản lý tệp tin trực tiếp từ điện thoại với trải nghiệm mượt mà.
-            </p>
 
             <a
               href="/cloudbox.apk"
               download="CloudBox.apk"
-              className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary py-2.5 px-4 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-btn bg-primary text-white text-xs font-semibold hover:bg-primary-ink shadow-xs transition-colors"
             >
               <Download className="h-4 w-4" />
               <span>Tải file APK (Android)</span>
             </a>
+          </div>
 
-            <div className="text-[11px] text-muted-foreground space-y-1 pt-1">
-              <p>💡 <strong>Hướng dẫn cài đặt:</strong></p>
-              <p>1. Tải file <code>CloudBox.apk</code> về điện thoại.</p>
-              <p>2. Mở file và chọn &quot;Cài đặt&quot; (cho phép nguồn này nếu máy hỏi).</p>
+          <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-card bg-surface-2 text-foreground flex items-center justify-center flex-shrink-0">
+                <Laptop className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  Ứng dụng Web Tiến bộ (PWA)
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Cài đặt CloudBox trực tiếp vào thanh tác vụ máy tính hoặc màn hình chính điện thoại mà không cần tải qua chợ ứng dụng.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => toast.success("Biểu tượng cài đặt đã sẵn sàng trên thanh địa chỉ trình duyệt!")}
+              variant="outline"
+              className="rounded-btn text-xs font-semibold h-9"
+            >
+              Cài đặt PWA trên máy
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Global Reset Seed Data Action */}
+      <div className="pt-6 border-t border-border max-w-2xl">
+        <div className="p-4 rounded-card bg-surface-2 border border-border flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-btn bg-muted flex items-center justify-center text-muted-foreground flex-shrink-0">
+              <RotateCcw className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">
+                {vi.settings.resetData}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {vi.settings.resetDesc}
+              </p>
             </div>
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleResetData}
+            className="rounded-btn text-xs font-semibold hover:bg-semantic-danger hover:text-white hover:border-semantic-danger transition-colors flex-shrink-0"
+          >
+            {vi.settings.resetAction}
+          </Button>
         </div>
       </div>
     </div>

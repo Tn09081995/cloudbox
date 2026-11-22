@@ -1,5 +1,5 @@
 import React from "react";
-import { DriveView } from "@/components/files/DriveView";
+import FolderContent from "./FolderContent";
 
 interface FolderPageProps {
   params: Promise<{ folderId: string }>;
@@ -7,5 +7,5 @@ interface FolderPageProps {
 
 export default async function FolderPage({ params }: FolderPageProps) {
   const { folderId } = await params;
-  return <DriveView folderId={folderId} />;
+  return <FolderContent folderId={folderId} />;
 }

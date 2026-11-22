@@ -1,62 +1,52 @@
 "use client";
 
 import React from "react";
-import { Folder, FileRecord } from "@/types";
-import { FolderItem } from "./FolderItem";
-import { FileItem } from "./FileItem";
+import { FileNode } from "@/lib/mock/types";
+import { FolderCard } from "./FolderCard";
+import { FileCard } from "./FileCard";
 
 interface FileGridProps {
-  folders: Folder[];
-  files: FileRecord[];
+  nodes: FileNode[];
+  onPreview?: (file: FileNode) => void;
+  onShare?: (file: FileNode) => void;
+  onRename?: (file: FileNode) => void;
+  onMove?: (file: FileNode) => void;
+  onDelete?: (file: FileNode) => void;
   isTrash?: boolean;
-  onPreviewFile: (file: FileRecord) => void;
-  onDownloadFile: (file: FileRecord) => void;
-  onShareFile: (file: FileRecord) => void;
-  onRenameFolder: (folder: Folder) => void;
-  onRenameFile: (file: FileRecord) => void;
-  onMoveFolder: (folder: Folder) => void;
-  onMoveFile: (file: FileRecord) => void;
-  onDeleteFolder: (folder: Folder) => void;
-  onDeleteFile: (file: FileRecord) => void;
-  onRestoreFolder?: (folder: Folder) => void;
-  onRestoreFile?: (file: FileRecord) => void;
+  onRestore?: (file: FileNode) => void;
 }
 
 export function FileGrid({
-  folders,
-  files,
+  nodes,
+  onPreview,
+  onShare,
+  onRename,
+  onMove,
+  onDelete,
   isTrash = false,
-  onPreviewFile,
-  onDownloadFile,
-  onShareFile,
-  onRenameFolder,
-  onRenameFile,
-  onMoveFolder,
-  onMoveFile,
-  onDeleteFolder,
-  onDeleteFile,
-  onRestoreFolder,
-  onRestoreFile,
+  onRestore,
 }: FileGridProps) {
+  const folders = nodes.filter((n) => n.kind === "folder");
+  const files = nodes.filter((n) => n.kind !== "folder");
+
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {/* Folders Section */}
       {folders.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">
             Thư mục ({folders.length})
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          </h2>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3 md:gap-4 w-full">
             {folders.map((folder) => (
-              <FolderItem
+              <FolderCard
                 key={folder.id}
                 folder={folder}
-                viewMode="grid"
+                onOpenRename={onRename}
+                onOpenMove={onMove}
+                onOpenDelete={onDelete}
                 isTrash={isTrash}
-                onRename={onRenameFolder}
-                onMove={onMoveFolder}
-                onDelete={onDeleteFolder}
-                onRestore={onRestoreFolder}
+                onRestore={onRestore}
               />
             ))}
           </div>
@@ -66,23 +56,21 @@ export function FileGrid({
       {/* Files Section */}
       {files.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">
             Tệp tin ({files.length})
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          </h2>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3 md:gap-4 w-full">
             {files.map((file) => (
-              <FileItem
+              <FileCard
                 key={file.id}
                 file={file}
-                viewMode="grid"
+                onPreview={onPreview}
+                onShare={onShare}
+                onRename={onRename}
+                onMove={onMove}
+                onDelete={onDelete}
                 isTrash={isTrash}
-                onPreview={onPreviewFile}
-                onDownload={onDownloadFile}
-                onShare={onShareFile}
-                onRename={onRenameFile}
-                onMove={onMoveFile}
-                onDelete={onDeleteFile}
-                onRestore={onRestoreFile}
+                onRestore={onRestore}
               />
             ))}
           </div>

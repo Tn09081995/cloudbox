@@ -9,45 +9,72 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-be-vietnam-pro)", "system-ui", "-apple-system", "sans-serif"],
+      },
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border: "var(--border)",
+        input: "var(--border)",
+        ring: "var(--primary)",
+        background: "var(--bg)",
+        foreground: "var(--text)",
+        surface: {
+          DEFAULT: "var(--surface)",
+          2: "var(--surface-2)",
+        },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-fg)",
+          soft: "var(--primary-soft)",
+          ink: "var(--primary-ink)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "var(--surface-2)",
+          foreground: "var(--muted)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "var(--surface)",
+          foreground: "var(--text)",
+        },
+        popover: {
+          DEFAULT: "var(--surface)",
+          foreground: "var(--text)",
+        },
+        semantic: {
+          success: "var(--success)",
+          warning: "var(--warning)",
+          danger: "var(--danger)",
+        },
+        kind: {
+          folder: "#F5A524",
+          image: "#3B82F6",
+          video: "#8B5CF6",
+          audio: "#EC4899",
+          document: "#10B981",
+          pdf: "#EF4444",
+          spreadsheet: "#22C55E",
+          archive: "#F59E0B",
+          code: "#06B6D4",
+          other: "#64748B",
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        btn: "8px",
+        card: "14px",
+        dialog: "20px",
+      },
+      lineHeight: {
+        vietnamese: "1.5",
+      },
+      transitionTimingFunction: {
+        cb: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      },
+      transitionDuration: {
+        cb: "180ms",
+      },
+      boxShadow: {
+        card: "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
+        "card-hover": "0 6px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.04)",
       },
     },
   },

@@ -1,6 +1,19 @@
+"use client";
+
 import React from "react";
-import { DriveView } from "@/components/files/DriveView";
+import { FolderView } from "@/components/files/FolderView";
+import { useFolderFiles, useBreadcrumbs } from "@/lib/hooks/useFiles";
 
 export default function DrivePage() {
-  return <DriveView folderId={null} />;
+  const { data: nodes = [], isLoading } = useFolderFiles(null);
+  const { data: breadcrumbs = [{ id: null, name: "Tệp của tôi" }] } = useBreadcrumbs(null);
+
+  return (
+    <FolderView
+      nodes={nodes}
+      breadcrumbs={breadcrumbs}
+      currentFolderId={null}
+      isLoading={isLoading}
+    />
+  );
 }
