@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { ViewMode, SortField, SortOrder, FileRecord } from "@/types";
 import { getDemoFiles } from "@/lib/demo-storage";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 interface DriveContextType {
   usedBytes: number;
@@ -209,12 +210,17 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
     try {
       if (file.storage_path.startsWith("gdrive:")) {
         const fileId = file.storage_path.replace("gdrive:", "");
+        const downloadUrl = `/api/gdrive/file/${fileId}?download=true`;
         const a = document.createElement("a");
-        a.href = `/api/gdrive/file/${fileId}?download=true`;
+        a.href = downloadUrl;
         a.download = file.name;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        setTimeout(() => {
+          try {
+            document.body.removeChild(a);
+          } catch {}
+        }, 1000);
         return;
       }
 
@@ -233,9 +239,13 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
       a.download = file.name;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      setTimeout(() => {
+        try {
+          document.body.removeChild(a);
+        } catch {}
+      }, 1000);
     } catch {
-      alert("Không thể tải tệp xuống. Vui lòng thử lại sau.");
+      toast.error("Không thể tải tệp xuống. Vui lòng thử lại sau.");
     }
   };
 

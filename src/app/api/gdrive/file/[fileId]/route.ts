@@ -44,10 +44,12 @@ export async function GET(request: Request, { params }: RouteProps) {
       headers.set("Content-Length", fileMeta.size);
     }
 
-    const encodedName = encodeURIComponent(fileMeta.name || "file");
+    const rawName = fileMeta.name || "file";
+    const encodedName = encodeURIComponent(rawName);
+    const safeAsciiName = rawName.replace(/[^\x20-\x7E]|["\\]/g, "_");
     headers.set(
       "Content-Disposition",
-      `${isDownload ? "attachment" : "inline"}; filename*=UTF-8''${encodedName}`
+      `${isDownload ? "attachment" : "inline"}; filename="${safeAsciiName}"; filename*=UTF-8''${encodedName}`
     );
 
     // Convert node stream to web ReadableStream

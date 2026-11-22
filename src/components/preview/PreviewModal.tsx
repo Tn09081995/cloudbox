@@ -115,14 +115,48 @@ export function PreviewModal({ isOpen, onClose, file }: PreviewModalProps) {
     }
   }, [isOpen, file, loadSignedUrl]);
 
-  const handleDownload = () => {
-    if (!signedUrl || !file) return;
-    const a = document.createElement("a");
-    a.href = signedUrl;
-    a.download = file.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async () => {
+    if (!file) return;
+    try {
+      if (file.storage_path.startsWith("gdrive:")) {
+        const fileId = file.storage_path.replace("gdrive:", "");
+        const downloadUrl = `/api/gdrive/file/${fileId}?download=true`;
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          try {
+            document.body.removeChild(a);
+          } catch {}
+        }, 1000);
+        return;
+      }
+
+      const { data, error } = await supabase.storage
+        .from("cloudbox")
+        .createSignedUrl(file.storage_path, 60, {
+          download: file.name,
+        });
+
+      if (error || !data?.signedUrl) {
+        throw new Error(error?.message || "Không thể tải tệp xuống");
+      }
+
+      const a = document.createElement("a");
+      a.href = data.signedUrl;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        try {
+          document.body.removeChild(a);
+        } catch {}
+      }, 1000);
+    } catch {
+      toast.error("Không thể tải tệp xuống. Vui lòng thử lại sau.");
+    }
   };
 
   if (!file) return null;
