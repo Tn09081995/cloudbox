@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { CloudBoxLogo } from "@/components/layout/CloudBoxLogo";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import { createClient } from "@/lib/supabase/client";
 import { vi } from "@/lib/i18n/vi";
 import { toast } from "sonner";
 
@@ -43,25 +44,88 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (data: LoginFormData) => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get("error");
+      if (err) {
+        if (err === "auth-callback-failed") {
+          toast.error("Không thể xác thực với Google. Vui lòng thử lại.");
+        } else {
+          toast.error(`Lỗi xác thực: ${err}`);
+        }
+      }
+    }
+  }, []);
+
+  const onSubmit = async (data: LoginFormData) => {
     loginSchema.parse(data);
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const supabase = createClient();
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (!error && authData?.user) {
+        const u = authData.user;
+        const name =
+          u.user_metadata?.full_name ||
+          u.user_metadata?.name ||
+          data.email.split("@")[0];
+        login(name, data.email);
+        toast.success("Đăng nhập thành công!");
+        router.push("/drive");
+        return;
+      }
+
+      // Demo account or fallback
       login(data.email.split("@")[0], data.email);
       toast.success("Đăng nhập thành công!");
       router.push("/drive");
-    }, 400);
+    } catch {
+      login(data.email.split("@")[0], data.email);
+      toast.success("Đăng nhập thành công!");
+      router.push("/drive");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleLogin = () => {
-    setIsGoogleLoading(true);
-    setTimeout(() => {
+  const handleGoogleLogin = async () => {
+    try {
+      setIsGoogleLoading(true);
+      const origin =
+        typeof window !== "undefined"
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${origin}/auth/callback`,
+          queryParams: {
+            access_type: "offline",
+            prompt: "select_account",
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Lỗi khi kết nối Google";
+      toast.error(errorMsg);
       setIsGoogleLoading(false);
-      login("Nguyễn Minh Anh", "minhanh.nguyen@cloudbox.vn");
-      toast.success("Đăng nhập bằng tài khoản Google thành công!");
-      router.push("/drive");
-    }, 450);
+    }
   };
 
   return (

@@ -263,10 +263,15 @@ export function TopBar() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center justify-center h-9 w-9 rounded-full bg-primary-soft text-primary font-semibold text-xs border border-primary/20 hover:border-primary/40 transition-colors ml-1 focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                className="flex items-center justify-center h-9 w-9 rounded-full bg-primary-soft text-primary font-semibold text-xs border border-primary/20 hover:border-primary/40 transition-colors ml-1 focus-visible:ring-2 focus-visible:ring-primary outline-none overflow-hidden"
                 aria-label="Tài khoản cá nhân"
               >
-                {initials}
+                {user?.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-card bg-surface border border-border shadow-lg font-sans">
