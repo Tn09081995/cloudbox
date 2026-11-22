@@ -1,17 +1,33 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { MobileTabBar } from "./MobileTabBar";
 import { useUiStore } from "@/lib/hooks/useUiStore";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const router = useRouter();
   const { setSidebarCollapsed } = useUiStore();
+  const { isAuthenticated, isInitialized, initialize } = useAuthStore();
+
+  // Initialize auth state on mount
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  // If user explicitly logged out, redirect to /login
+  useEffect(() => {
+    if (isInitialized && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isInitialized, isAuthenticated, router]);
 
   // Responsive listener: auto-collapse to 72px rail below 1100px
   useEffect(() => {
@@ -27,6 +43,15 @@ export function AppShell({ children }: AppShellProps) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [setSidebarCollapsed]);
+
+  // If logged out, render a subtle redirecting state
+  if (isInitialized && !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased font-sans">

@@ -27,7 +27,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUiStore, SortField, SortOrder } from "@/lib/hooks/useUiStore";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { vi } from "@/lib/i18n/vi";
+import { toast } from "sonner";
 import {
   Tooltip,
   TooltipContent,
@@ -38,6 +40,7 @@ import {
 export function TopBar() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuthStore();
   const {
     viewMode,
     setViewMode,
@@ -49,6 +52,22 @@ export function TopBar() {
     setMobileMenuOpen,
     setCommandPaletteOpen,
   } = useUiStore();
+
+  const handleLogout = () => {
+    logout();
+    toast.success("Đã đăng xuất khỏi tài khoản thành công!");
+    router.push("/login");
+  };
+
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .slice(-2)
+        .join("")
+        .toUpperCase()
+    : "CB";
 
   const sortOptions: { field: SortField; order: SortOrder; label: string }[] = [
     { field: "updated_at", order: "desc", label: "Mới sửa đổi nhất" },
@@ -247,13 +266,13 @@ export function TopBar() {
                 className="flex items-center justify-center h-9 w-9 rounded-full bg-primary-soft text-primary font-semibold text-xs border border-primary/20 hover:border-primary/40 transition-colors ml-1 focus-visible:ring-2 focus-visible:ring-primary outline-none"
                 aria-label="Tài khoản cá nhân"
               >
-                TA
+                {initials}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-card bg-surface border border-border shadow-lg font-sans">
               <div className="px-3 py-2 border-b border-border/80 mb-1">
-                <p className="text-xs font-semibold text-foreground">Tuấn Anh</p>
-                <p className="text-[11px] text-muted-foreground truncate">tuananh@cloudbox.io</p>
+                <p className="text-xs font-semibold text-foreground truncate">{user?.name || "Người dùng"}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{user?.email || "user@cloudbox.vn"}</p>
               </div>
 
               <DropdownMenuItem
@@ -275,7 +294,7 @@ export function TopBar() {
               <DropdownMenuSeparator className="my-1 bg-border" />
 
               <DropdownMenuItem
-                onClick={() => router.push("/login")}
+                onClick={handleLogout}
                 className="flex items-center gap-2.5 px-3 py-2 text-xs rounded-btn cursor-pointer font-medium text-semantic-danger focus:text-semantic-danger"
               >
                 <LogOut className="h-3.5 w-3.5" />

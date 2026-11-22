@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { CloudBoxLogo } from "@/components/layout/CloudBoxLogo";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { vi } from "@/lib/i18n/vi";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
@@ -46,6 +48,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
+      login(data.email.split("@")[0], data.email);
       toast.success("Đăng nhập thành công!");
       router.push("/drive");
     }, 400);
@@ -55,6 +58,7 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
     setTimeout(() => {
       setIsGoogleLoading(false);
+      login("Nguyễn Minh Anh", "minhanh.nguyen@cloudbox.vn");
       toast.success("Đăng nhập bằng tài khoản Google thành công!");
       router.push("/drive");
     }, 450);
