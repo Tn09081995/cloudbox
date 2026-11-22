@@ -10,6 +10,7 @@ import {
   Users,
   Trash2,
   Settings,
+  Smartphone,
   ChevronRight,
   ChevronDown,
   Folder,
@@ -61,6 +62,16 @@ const MOCK_FOLDER_TREE: FolderItem[] = [
     name: "Cá nhân & Gia đình",
     color: "#06B6D4",
   },
+  {
+    id: "folder-phone-backup",
+    name: "Sao lưu điện thoại",
+    color: "#3B82F6",
+    children: [
+      { id: "folder-camera", name: "Ảnh Camera (DCIM)", color: "#10B981" },
+      { id: "folder-screenshots", name: "Ảnh chụp màn hình", color: "#8B5CF6" },
+      { id: "folder-zalo", name: "Tệp Zalo & Tin nhắn", color: "#06B6D4" },
+    ],
+  },
 ];
 
 export function Sidebar({ className = "" }: { className?: string }) {
@@ -108,6 +119,12 @@ export function Sidebar({ className = "" }: { className?: string }) {
       label: vi.nav.shared,
       icon: Users,
       active: pathname === "/shared",
+    },
+    {
+      href: "/backup",
+      label: vi.nav.backup,
+      icon: Smartphone,
+      active: pathname === "/backup",
     },
     {
       href: "/trash",

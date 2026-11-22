@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useRef } from "react";
-import { Plus, Upload, FolderPlus, FilePlus, FolderUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Upload, FolderPlus, FilePlus, FolderUp, Smartphone } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ export function NewMenuButton({
   onUploadFiles,
   className = "",
 }: NewMenuButtonProps) {
+  const router = useRouter();
   const { setNewFolderOpen, setNewTextFileOpen } = useUiStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -114,6 +116,16 @@ export function NewMenuButton({
           >
             <FilePlus className="h-4 w-4 text-kind-document" />
             <span>{vi.actions.newTextFile}</span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="my-1 bg-border" />
+
+          <DropdownMenuItem
+            className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-btn cursor-pointer font-medium hover:bg-surface-2 focus:bg-surface-2"
+            onClick={() => router.push("/backup")}
+          >
+            <Smartphone className="h-4 w-4 text-blue-500" />
+            <span>{vi.nav.backup}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

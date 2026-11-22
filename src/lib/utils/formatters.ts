@@ -57,7 +57,7 @@ export function formatShortDate(date: Date | string | number): string {
     return "Hôm qua";
   }
 
-  return format(d, "d thg M, yyyy", { locale: viLocale });
+  return format(d, "d 'thg' M, yyyy", { locale: viLocale });
 }
 
 /**
