@@ -1,9 +1,19 @@
 import { FileNode, BreadcrumbSegment, StorageUsage, ShareSettings } from "./types";
 import { createInitialSeedNodes } from "./seed";
 import { removeDiacritics } from "@/lib/utils/formatters";
-import { FileKind } from "@/lib/utils/file-types";
+import { FileKind, getFileKind } from "@/lib/utils/file-types";
 
-const STORAGE_KEY = "cloudbox_mock_nodes_v1";
+const STORAGE_KEY = "cloudbox_mock_nodes_v2";
+
+const DELETED_SAMPLE_IDS = new Set([
+  "file-root-1",
+  "file-root-2",
+  "file-root-3",
+  "file-root-4",
+  "file-shared-1",
+  "file-shared-2",
+  "file-shared-3",
+]);
 
 export interface FilesRepository {
   listFolder(folderId: string | null): Promise<FileNode[]>;
@@ -18,6 +28,10 @@ export interface FilesRepository {
 
   createFolder(name: string, parentId: string | null, color?: string): Promise<FileNode>;
   createTextFile(name: string, content: string, parentId: string | null): Promise<FileNode>;
+  createUploadedFile(
+    file: { name: string; size: number; type?: string },
+    parentId: string | null
+  ): Promise<FileNode>;
   rename(id: string, newName: string): Promise<FileNode>;
   move(ids: string[], targetFolderId: string | null): Promise<void>;
   copy(ids: string[], targetFolderId: string | null): Promise<void>;
@@ -37,17 +51,25 @@ const delay = (ms = 180) => new Promise((resolve) => setTimeout(resolve, ms));
 export class LocalFilesRepository implements FilesRepository {
   private getNodes(): FileNode[] {
     if (typeof window === "undefined") {
-      return createInitialSeedNodes();
+      return createInitialSeedNodes().filter((n) => !DELETED_SAMPLE_IDS.has(n.id));
     }
 
     try {
+      // Clean legacy v1 storage if present
+      localStorage.removeItem("cloudbox_mock_nodes_v1");
+
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored) as FileNode[];
+        const parsed = JSON.parse(stored) as FileNode[];
+        const cleaned = parsed.filter((n) => !DELETED_SAMPLE_IDS.has(n.id));
+        if (cleaned.length !== parsed.length) {
+          this.saveNodes(cleaned);
+        }
+        return cleaned;
       }
     } catch {}
 
-    const seed = createInitialSeedNodes();
+    const seed = createInitialSeedNodes().filter((n) => !DELETED_SAMPLE_IDS.has(n.id));
     this.saveNodes(seed);
     return seed;
   }
@@ -245,6 +267,48 @@ export class LocalFilesRepository implements FilesRepository {
           action: "created",
           description: "Tạo tệp văn bản mới",
           actor: "Nguyễn Tuấn Anh",
+          timestamp: now,
+        },
+      ],
+    };
+
+    this.saveNodes([newFile, ...nodes]);
+    return newFile;
+  }
+
+  async createUploadedFile(
+    file: { name: string; size: number; type?: string },
+    parentId: string | null
+  ): Promise<FileNode> {
+    await delay(100);
+    const nodes = this.getNodes();
+    const now = new Date().toISOString();
+    const kind = getFileKind(file.type || "", file.name);
+
+    const newFile: FileNode = {
+      id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: file.name,
+      kind,
+      size: file.size,
+      mime_type: file.type || "application/octet-stream",
+      parent_id: parentId,
+      is_starred: false,
+      is_trashed: false,
+      created_at: now,
+      updated_at: now,
+      owner: {
+        id: "user-me",
+        name: "Người dùng",
+        email: "user@cloudbox.vn",
+        isCurrentUser: true,
+      },
+      thumbnail_seed: `upload-${Date.now()}`,
+      activities: [
+        {
+          id: `act-${Date.now()}`,
+          action: "created",
+          description: "Đã tải lên tệp tin mới",
+          actor: "Bạn",
           timestamp: now,
         },
       ],

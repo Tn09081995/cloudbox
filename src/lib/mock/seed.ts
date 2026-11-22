@@ -117,110 +117,6 @@ export function createInitialSeedNodes(): FileNode[] {
     },
 
     // ==========================================
-    // ROOT LEVEL FILES
-    // ==========================================
-    {
-      id: "file-root-1",
-      name: "Báo cáo tổng kết quý 4.pdf",
-      kind: "pdf",
-      size: 3840000, // 3,7 MB
-      mime_type: "application/pdf",
-      parent_id: null,
-      is_starred: true,
-      is_trashed: false,
-      created_at: getDaysAgo(5),
-      updated_at: getRelativeDate(0.8), // Today, e.g. 09:13
-      owner: CURRENT_USER,
-      thumbnail_seed: "pdf-report-q4",
-      versions: [
-        {
-          id: "v2",
-          versionNumber: 2,
-          name: "Báo cáo tổng kết quý 4.pdf",
-          size: 3840000,
-          updated_at: getRelativeDate(0.8),
-          updated_by: "Nguyễn Tuấn Anh",
-        },
-        {
-          id: "v1",
-          versionNumber: 1,
-          name: "Báo cáo sơ bộ quý 4.pdf",
-          size: 3420000,
-          updated_at: getDaysAgo(2),
-          updated_by: "Nguyễn Tuấn Anh",
-        },
-      ],
-      activities: [
-        {
-          id: "act-1",
-          action: "edited",
-          description: "Đã cập nhật số liệu bảng doanh thu",
-          actor: "Nguyễn Tuấn Anh",
-          timestamp: getRelativeDate(0.8),
-        },
-        {
-          id: "act-2",
-          action: "created",
-          description: "Tạo tệp mới",
-          actor: "Nguyễn Tuấn Anh",
-          timestamp: getDaysAgo(5),
-        },
-      ],
-    },
-    {
-      id: "file-root-2",
-      name: "Ghi chú chiến lược sản phẩm 2026.md",
-      kind: "code",
-      size: 14200, // 14,2 KB
-      mime_type: "text/markdown",
-      parent_id: null,
-      is_starred: true,
-      is_trashed: false,
-      created_at: getDaysAgo(10),
-      updated_at: getRelativeDate(3.2), // Today
-      owner: CURRENT_USER,
-      content: `# Chiến lược Sản phẩm CloudBox 2026
-
-## 1. Định hướng cốt lõi
-- Trải nghiệm lưu trữ cá nhân tinh tế, thoáng đạt và tập trung cao độ.
-- Tốc độ phản hồi dưới 150ms cho mọi thao tác giao diện.
-- Đồng bộ mượt mà giữa máy tính và thiết bị di động.
-
-## 2. Kế hoạch Quý 1
-- Hoàn thiện Design System với bảng màu trung tính.
-- Nâng cấp bộ xem trước hình ảnh, PDF và video độ phân giải cao.
-- Hỗ trợ phím tắt toàn diện cho người dùng chuyên nghiệp.`,
-    },
-    {
-      id: "file-root-3",
-      name: "Ảnh chụp màn hình kiến trúc hệ thống.png",
-      kind: "image",
-      size: 2740000, // 2,6 MB
-      mime_type: "image/png",
-      parent_id: null,
-      is_starred: false,
-      is_trashed: false,
-      created_at: getDaysAgo(1, 16, 45), // Yesterday
-      updated_at: getDaysAgo(1, 16, 45),
-      owner: CURRENT_USER,
-      thumbnail_seed: "img-arch-system",
-    },
-    {
-      id: "file-root-4",
-      name: "Kế hoạch ngân sách dự án.xlsx",
-      kind: "spreadsheet",
-      size: 1850000, // 1,8 MB
-      mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      parent_id: null,
-      is_starred: false,
-      is_trashed: false,
-      created_at: getDaysAgo(1, 11, 10), // Yesterday
-      updated_at: getDaysAgo(1, 11, 10),
-      owner: CURRENT_USER,
-      thumbnail_seed: "sheet-budget-2026",
-    },
-
-    // ==========================================
     // LEVEL 2: INSIDE "Tài liệu công việc" (folder-work)
     // ==========================================
     {
@@ -580,7 +476,7 @@ export function createInitialSeedNodes(): FileNode[] {
       kind: "pdf",
       size: 5120000,
       mime_type: "application/pdf",
-      parent_id: null,
+      parent_id: "shared-mock-virtual",
       is_starred: true,
       is_trashed: false,
       created_at: getDaysAgo(7),
@@ -594,7 +490,7 @@ export function createInitialSeedNodes(): FileNode[] {
       kind: "other",
       size: 18200000, // 17,3 MB
       mime_type: "application/x-figma",
-      parent_id: null,
+      parent_id: "shared-mock-virtual",
       is_starred: false,
       is_trashed: false,
       created_at: getDaysAgo(4),
@@ -608,7 +504,7 @@ export function createInitialSeedNodes(): FileNode[] {
       kind: "document",
       size: 2900000,
       mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      parent_id: null,
+      parent_id: "shared-mock-virtual",
       is_starred: false,
       is_trashed: false,
       created_at: getDaysAgo(10),

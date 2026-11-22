@@ -1,9 +1,11 @@
 import { create } from "zustand";
+import { repository } from "@/lib/mock/repository";
 
 export interface UploadItem {
   id: string;
   name: string;
   size: number;
+  type?: string;
   progress: number; // 0 - 100
   speed: string; // e.g. "2,8 MB"
   eta: string; // e.g. "3 giây"
@@ -44,9 +46,10 @@ export const useUploadStore = create<UploadState>((set) => ({
       id: `upload-${Date.now()}-${idx}`,
       name: file.name,
       size: file.size,
+      type: file.type,
       progress: 0,
       speed: "3,2 MB",
-      eta: "5 giây",
+      eta: "3 giây",
       status: "uploading",
       targetFolderId,
     }));
@@ -136,6 +139,23 @@ function simulateUpload(itemId: string, shouldFail: boolean) {
             : i
         ),
       });
+
+      // Insert new uploaded file into the repository!
+      repository
+        .createUploadedFile(
+          {
+            name: item.name,
+            size: item.size,
+            type: item.type,
+          },
+          item.targetFolderId || null
+        )
+        .then(() => {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("cloudbox:refresh-files"));
+          }
+        })
+        .catch(() => {});
       return;
     }
 

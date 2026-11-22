@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Trash2, AlertCircle } from "lucide-react";
 import { FileNode, BreadcrumbSegment } from "@/lib/mock/types";
 import { useUiStore } from "@/lib/hooks/useUiStore";
@@ -62,6 +63,17 @@ export function FolderView({
   } = useUiStore();
 
   const { trash, restore, toggleStar } = useFileMutations();
+  const queryClient = useQueryClient();
+
+  // Listen for file upload completion to refresh folder contents
+  useEffect(() => {
+    const handleRefresh = () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["storage"] });
+    };
+    window.addEventListener("cloudbox:refresh-files", handleRefresh);
+    return () => window.removeEventListener("cloudbox:refresh-files", handleRefresh);
+  }, [queryClient]);
 
   // Active dialog targets
   const [renameNode, setRenameNode] = useState<FileNode | null>(null);

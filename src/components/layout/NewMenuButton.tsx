@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUiStore } from "@/lib/hooks/useUiStore";
+import { useUploadStore } from "@/lib/hooks/useUploadStore";
 import { vi } from "@/lib/i18n/vi";
 
 interface NewMenuButtonProps {
@@ -30,8 +31,13 @@ export function NewMenuButton({
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && onUploadFiles) {
-      onUploadFiles(e.target.files);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      if (onUploadFiles) {
+        onUploadFiles(files);
+      } else {
+        useUploadStore.getState().addFiles(files, null);
+      }
     }
     e.target.value = "";
   };
