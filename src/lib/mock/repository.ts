@@ -1,9 +1,33 @@
-import { FileNode, BreadcrumbSegment, StorageUsage, ShareSettings } from "./types";
+import { FileNode, BreadcrumbSegment, StorageUsage, ShareSettings, NodeOwner } from "./types";
 import { createInitialSeedNodes } from "./seed";
 import { removeDiacritics } from "@/lib/utils/formatters";
 import { FileKind, getFileKind } from "@/lib/utils/file-types";
 
 const STORAGE_KEY = "cloudbox_mock_nodes_v5";
+
+function getCurrentUserOwner(): NodeOwner {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("cloudbox_auth_session");
+      if (stored && stored !== "logged_out") {
+        const u = JSON.parse(stored);
+        return {
+          id: "user-me",
+          name: u.name || "Người dùng",
+          email: u.email || "user@cloudbox.vn",
+          avatar: u.avatar,
+          isCurrentUser: true,
+        };
+      }
+    } catch {}
+  }
+  return {
+    id: "user-me",
+    name: "Người dùng",
+    email: "user@cloudbox.vn",
+    isCurrentUser: true,
+  };
+}
 
 export const isSampleMockFile = (n: FileNode): boolean => {
   if (n.kind === "folder") return false;
@@ -239,6 +263,7 @@ export class LocalFilesRepository implements FilesRepository {
     const nodes = this.getNodes();
     const now = new Date().toISOString();
 
+    const currentUser = getCurrentUserOwner();
     const newFolder: FileNode = {
       id: `folder-${Date.now()}`,
       name: name.trim() || "Thư mục không tên",
@@ -252,18 +277,13 @@ export class LocalFilesRepository implements FilesRepository {
       is_trashed: false,
       created_at: now,
       updated_at: now,
-      owner: {
-        id: "user-me",
-        name: "Nguyễn Tuấn Anh",
-        email: "tuananh@cloudbox.io",
-        isCurrentUser: true,
-      },
+      owner: currentUser,
       activities: [
         {
           id: `act-${Date.now()}`,
           action: "created",
           description: "Tạo thư mục mới",
-          actor: "Nguyễn Tuấn Anh",
+          actor: currentUser.name,
           timestamp: now,
         },
       ],
@@ -282,6 +302,7 @@ export class LocalFilesRepository implements FilesRepository {
     const nodes = this.getNodes();
     const now = new Date().toISOString();
     const safeName = name.endsWith(".txt") || name.endsWith(".md") ? name : `${name}.txt`;
+    const currentUser = getCurrentUserOwner();
 
     const newFile: FileNode = {
       id: `file-${Date.now()}`,
@@ -294,19 +315,14 @@ export class LocalFilesRepository implements FilesRepository {
       is_trashed: false,
       created_at: now,
       updated_at: now,
-      owner: {
-        id: "user-me",
-        name: "Nguyễn Tuấn Anh",
-        email: "tuananh@cloudbox.io",
-        isCurrentUser: true,
-      },
+      owner: currentUser,
       content,
       activities: [
         {
           id: `act-${Date.now()}`,
           action: "created",
           description: "Tạo tệp văn bản mới",
-          actor: "Nguyễn Tuấn Anh",
+          actor: currentUser.name,
           timestamp: now,
         },
       ],
@@ -324,6 +340,7 @@ export class LocalFilesRepository implements FilesRepository {
     const nodes = this.getNodes();
     const now = new Date().toISOString();
     const kind = getFileKind(file.type || "", file.name);
+    const currentUser = getCurrentUserOwner();
 
     const newFile: FileNode = {
       id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -336,19 +353,14 @@ export class LocalFilesRepository implements FilesRepository {
       is_trashed: false,
       created_at: now,
       updated_at: now,
-      owner: {
-        id: "user-me",
-        name: "Người dùng",
-        email: "user@cloudbox.vn",
-        isCurrentUser: true,
-      },
+      owner: currentUser,
       thumbnail_seed: `upload-${Date.now()}`,
       activities: [
         {
           id: `act-${Date.now()}`,
           action: "created",
           description: "Đã tải lên tệp tin mới",
-          actor: "Bạn",
+          actor: currentUser.name,
           timestamp: now,
         },
       ],

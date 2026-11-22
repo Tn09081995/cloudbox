@@ -14,6 +14,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isInitialized: boolean;
   login: (name: string, email: string, avatar?: string) => void;
+  updateProfile: (updates: { name?: string; email?: string; avatar?: string }) => Promise<void>;
   logout: () => void;
   initialize: () => void;
 }
@@ -23,7 +24,7 @@ const DEFAULT_USER: AuthUser = {
   email: "minhanh.nguyen@cloudbox.vn",
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: DEFAULT_USER,
   isAuthenticated: true,
   isInitialized: false,
@@ -99,6 +100,36 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     set({ user, isAuthenticated: true, isInitialized: true });
+  },
+
+  updateProfile: async (updates: { name?: string; email?: string; avatar?: string }) => {
+    const currentUser = get().user || DEFAULT_USER;
+    const updatedUser: AuthUser = {
+      ...currentUser,
+      name: updates.name !== undefined ? updates.name.trim() || currentUser.name : currentUser.name,
+      email: updates.email !== undefined ? updates.email.trim().toLowerCase() || currentUser.email : currentUser.email,
+      avatar: updates.avatar !== undefined ? updates.avatar : currentUser.avatar,
+    };
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cloudbox_auth_session", JSON.stringify(updatedUser));
+      document.cookie = "cloudbox_session=1; path=/; max-age=604800; SameSite=Lax";
+      document.cookie = `cloudbox_user_session=${encodeURIComponent(JSON.stringify(updatedUser))}; path=/; max-age=604800; SameSite=Lax`;
+    }
+
+    set({ user: updatedUser });
+
+    // Also update Supabase user metadata if signed in
+    try {
+      const supabase = createClient();
+      await supabase.auth.updateUser({
+        data: {
+          full_name: updatedUser.name,
+          name: updatedUser.name,
+          avatar_url: updatedUser.avatar,
+        },
+      });
+    } catch {}
   },
 
   logout: () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import {
   User,
@@ -15,11 +15,14 @@ import {
   QrCode,
   LogOut,
   Download,
+  Camera,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStorageUsage, useFileMutations, useFolderFiles } from "@/lib/hooks/useFiles";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { formatBytes, formatRelativeDate } from "@/lib/utils/formatters";
 import { FILE_KIND_CONFIGS } from "@/lib/utils/file-types";
 import { vi } from "@/lib/i18n/vi";
@@ -33,12 +36,51 @@ export default function SettingsPage() {
   const { data: storage } = useStorageUsage();
   const { resetData } = useFileMutations();
   const { data: allNodes = [] } = useFolderFiles(null);
+  const { user, updateProfile } = useAuthStore();
 
   // Profile Form State
-  const [fullName, setFullName] = useState("Nguyễn Minh Anh");
-  const [email, setEmail] = useState("minhanh.nguyen@cloudbox.vn");
+  const [fullName, setFullName] = useState(user?.name || "Nguyễn Minh Anh");
+  const [email, setEmail] = useState(user?.email || "minhanh.nguyen@cloudbox.vn");
+  const [avatar, setAvatar] = useState(user?.avatar || "");
   const role = "Cá nhân / Quản trị viên";
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync state whenever user in auth store changes
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name);
+      setEmail(user.email);
+      setAvatar(user.avatar || "");
+    }
+  }, [user]);
+
+  const initials = fullName
+    ? fullName
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .slice(-2)
+        .join("")
+        .toUpperCase()
+    : "NA";
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Vui lòng chọn ảnh có dung lượng dưới 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setAvatar(base64);
+        toast.info("Đã chọn ảnh mới. Hãy nhấn 'Lưu thay đổi' để hoàn tất.");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Appearance State
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
@@ -58,13 +100,30 @@ export default function SettingsPage() {
     .sort((a, b) => b.size - a.size)
     .slice(0, 5);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName.trim()) {
+      toast.error("Vui lòng nhập họ và tên");
+      return;
+    }
+    if (!email.trim()) {
+      toast.error("Vui lòng nhập địa chỉ email");
+      return;
+    }
+
     setIsSavingProfile(true);
-    setTimeout(() => {
-      setIsSavingProfile(false);
+    try {
+      await updateProfile({
+        name: fullName.trim(),
+        email: email.trim(),
+        avatar: avatar || undefined,
+      });
       toast.success(vi.settings.profileSaved);
-    }, 400);
+    } catch {
+      toast.error("Có lỗi xảy ra khi lưu thông tin");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleResetData = async () => {
@@ -166,22 +225,61 @@ export default function SettingsPage() {
       {activeTab === "profile" && (
         <div className="space-y-6 animate-in fade-in duration-cb max-w-2xl">
           <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-6">
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-primary-soft text-primary font-bold text-xl flex items-center justify-center border-2 border-primary/20">
-                NA
+              <div className="relative group">
+                <div className="h-16 w-16 rounded-full bg-primary-soft text-primary font-bold text-xl flex items-center justify-center border-2 border-primary/20 overflow-hidden flex-shrink-0">
+                  {avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatar} alt={fullName} className="h-full w-full object-cover" />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute inset-0 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Đổi ảnh đại diện"
+                >
+                  <Camera className="h-5 w-5" />
+                </button>
               </div>
+
               <div>
                 <h3 className="font-semibold text-base text-foreground">
                   {fullName}
                 </h3>
                 <p className="text-xs text-muted-foreground">{email}</p>
-                <button
-                  type="button"
-                  onClick={() => toast.info("Tính năng đổi ảnh đại diện (Chế độ UI)")}
-                  className="mt-2 text-xs text-primary hover:underline font-medium"
-                >
-                  Thay đổi ảnh đại diện
-                </button>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    Thay đổi ảnh đại diện
+                  </button>
+                  {avatar && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAvatar("");
+                        toast.info("Đã gỡ ảnh đại diện. Nhấn 'Lưu thay đổi' để hoàn tất.");
+                      }}
+                      className="text-xs text-semantic-danger hover:underline font-medium flex items-center gap-1"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Gỡ ảnh
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
