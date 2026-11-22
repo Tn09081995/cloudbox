@@ -3,17 +3,23 @@ import { createInitialSeedNodes } from "./seed";
 import { removeDiacritics } from "@/lib/utils/formatters";
 import { FileKind, getFileKind } from "@/lib/utils/file-types";
 
-const STORAGE_KEY = "cloudbox_mock_nodes_v2";
+const STORAGE_KEY = "cloudbox_mock_nodes_v5";
 
-const DELETED_SAMPLE_IDS = new Set([
-  "file-root-1",
-  "file-root-2",
-  "file-root-3",
-  "file-root-4",
-  "file-shared-1",
-  "file-shared-2",
-  "file-shared-3",
-]);
+export const isSampleMockFile = (n: FileNode): boolean => {
+  if (n.kind === "folder") return false;
+  return (
+    n.id.startsWith("file-work") ||
+    n.id.startsWith("file-proj") ||
+    n.id.startsWith("file-design") ||
+    n.id.startsWith("file-pers") ||
+    n.id.startsWith("file-fin") ||
+    n.id.startsWith("file-shared") ||
+    n.id.startsWith("file-phone") ||
+    n.id.startsWith("file-trash") ||
+    n.id.startsWith("file-root") ||
+    n.id.startsWith("demo-file")
+  );
+};
 
 export interface FilesRepository {
   listFolder(folderId: string | null): Promise<FileNode[]>;
@@ -51,25 +57,51 @@ const delay = (ms = 180) => new Promise((resolve) => setTimeout(resolve, ms));
 export class LocalFilesRepository implements FilesRepository {
   private getNodes(): FileNode[] {
     if (typeof window === "undefined") {
-      return createInitialSeedNodes().filter((n) => !DELETED_SAMPLE_IDS.has(n.id));
+      return createInitialSeedNodes();
     }
 
     try {
-      // Clean legacy v1 storage if present
-      localStorage.removeItem("cloudbox_mock_nodes_v1");
+      // Clean legacy v1/v2/v3/v4 storage if present
+      const legacyKeys = [
+        "cloudbox_mock_nodes_v1",
+        "cloudbox_mock_nodes_v2",
+        "cloudbox_mock_nodes_v3",
+        "cloudbox_mock_nodes_v4",
+      ];
+
+      let userCreatedFiles: FileNode[] = [];
+      for (const key of legacyKeys) {
+        const oldVal = localStorage.getItem(key);
+        if (oldVal) {
+          try {
+            const parsed = JSON.parse(oldVal) as FileNode[];
+            const realUserFiles = parsed.filter(
+              (n) => n.kind !== "folder" && !isSampleMockFile(n)
+            );
+            userCreatedFiles = [...userCreatedFiles, ...realUserFiles];
+          } catch {}
+          localStorage.removeItem(key);
+        }
+      }
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as FileNode[];
-        const cleaned = parsed.filter((n) => !DELETED_SAMPLE_IDS.has(n.id));
+        // Filter out any remaining mock sample files
+        const cleaned = parsed.filter((n) => !isSampleMockFile(n));
         if (cleaned.length !== parsed.length) {
           this.saveNodes(cleaned);
         }
         return cleaned;
+      } else {
+        const seed = createInitialSeedNodes();
+        const initial = [...userCreatedFiles, ...seed];
+        this.saveNodes(initial);
+        return initial;
       }
     } catch {}
 
-    const seed = createInitialSeedNodes().filter((n) => !DELETED_SAMPLE_IDS.has(n.id));
+    const seed = createInitialSeedNodes();
     this.saveNodes(seed);
     return seed;
   }
@@ -84,9 +116,17 @@ export class LocalFilesRepository implements FilesRepository {
   async listFolder(folderId: string | null): Promise<FileNode[]> {
     await delay(180);
     const nodes = this.getNodes();
-    return nodes.filter(
-      (node) => !node.is_trashed && node.parent_id === folderId
-    );
+    return nodes
+      .filter((node) => !node.is_trashed && node.parent_id === folderId)
+      .map((node) => {
+        if (node.kind === "folder") {
+          const childrenCount = nodes.filter(
+            (c) => !c.is_trashed && c.parent_id === node.id
+          ).length;
+          return { ...node, item_count: childrenCount };
+        }
+        return node;
+      });
   }
 
   async getBreadcrumbs(folderId: string | null): Promise<BreadcrumbSegment[]> {
