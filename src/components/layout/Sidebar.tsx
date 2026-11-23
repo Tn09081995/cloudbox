@@ -17,6 +17,7 @@ import {
   Upload,
   X,
   Sparkles,
+  Smartphone,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -83,6 +84,12 @@ export function Sidebar({ className = "" }: { className?: string }) {
       label: "Ảnh & Video",
       icon: ImageIcon,
       active: pathname === "/photos",
+    },
+    {
+      href: "/backup",
+      label: "Sao lưu thiết bị",
+      icon: Smartphone,
+      active: pathname === "/backup",
     },
     {
       href: "/documents",

@@ -104,6 +104,7 @@ export default function MobileBackupPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   // Backup configuration toggle states
+  const [autoBackupPhotos, setAutoBackupPhotos] = useState(() => BackupSyncService.getConfig().autoBackupPhotos);
   const [wifiOnly, setWifiOnly] = useState(true);
   const [originalQuality, setOriginalQuality] = useState(true);
   const [appFolders, setAppFolders] = useState(true);
@@ -447,7 +448,19 @@ export default function MobileBackupPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="rounded-btn text-xs font-semibold gap-1.5 h-9 border-primary/30 text-primary hover:bg-primary-soft"
+          >
+            <Link href="/photos">
+              <ImageIcon className="h-4 w-4" />
+              <span>Xem ảnh đã sao lưu</span>
+            </Link>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -712,9 +725,16 @@ export default function MobileBackupPage() {
                   <div className="space-y-1.5 text-xs">
                     <div className="flex items-center justify-between text-muted-foreground">
                       <span>Dữ liệu đã sao lưu:</span>
-                      <span className="font-bold text-foreground font-mono">
-                        {device.syncedStats.photos.toLocaleString("vi-VN")} ảnh · {device.syncedStats.videos} video ({device.syncedStats.sizeString})
-                      </span>
+                      <Link
+                        href="/photos"
+                        className="font-bold text-primary hover:underline font-mono inline-flex items-center gap-1"
+                        title="Bấm để xem ảnh và video đã sao lưu"
+                      >
+                        <span>
+                          {device.syncedStats.photos.toLocaleString("vi-VN")} ảnh · {device.syncedStats.videos} video
+                        </span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
                     </div>
                     <div className="flex items-center justify-between text-muted-foreground">
                       <span>Lần đồng bộ gần nhất:</span>
@@ -724,8 +744,20 @@ export default function MobileBackupPage() {
                     </div>
                   </div>
 
-                  {/* Quick Action Button */}
-                  <div className="pt-1 flex items-center justify-end">
+                  {/* Quick Action Buttons */}
+                  <div className="pt-1 flex items-center justify-between">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2.5 text-[11px] rounded-btn font-semibold gap-1 text-primary hover:bg-primary/10"
+                    >
+                      <Link href="/photos">
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        <span>Xem ảnh đã sao lưu</span>
+                      </Link>
+                    </Button>
+
                     <Button
                       size="sm"
                       variant="outline"
@@ -751,17 +783,17 @@ export default function MobileBackupPage() {
             {vi.mobileBackup.foldersHeading}
           </h2>
           <Link
-            href="/drive"
+            href="/photos"
             className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
           >
-            <span>Mở trong Tệp của tôi</span>
+            <span>Mở Thư viện Ảnh & Video</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <Link
-            href="/drive"
+            href="/photos"
             className="p-4 rounded-card bg-surface border border-border hover:border-primary/50 hover:shadow-card-hover transition-all group"
           >
             <div className="h-9 w-9 rounded-btn bg-blue-500/10 text-blue-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -776,7 +808,7 @@ export default function MobileBackupPage() {
           </Link>
 
           <Link
-            href="/drive"
+            href="/photos"
             className="p-4 rounded-card bg-surface border border-border hover:border-primary/50 hover:shadow-card-hover transition-all group"
           >
             <div className="h-9 w-9 rounded-btn bg-purple-500/10 text-purple-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -791,7 +823,7 @@ export default function MobileBackupPage() {
           </Link>
 
           <Link
-            href="/drive"
+            href="/photos"
             className="p-4 rounded-card bg-surface border border-border hover:border-primary/50 hover:shadow-card-hover transition-all group"
           >
             <div className="h-9 w-9 rounded-btn bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -873,10 +905,11 @@ export default function MobileBackupPage() {
               </p>
             </div>
             <Switch
-              checked={isAutoBackupEnabled}
+              checked={autoBackupPhotos}
               onCheckedChange={(val) => {
-                setAutoBackupOnWebChange(val);
-                toast.success(val ? "Đã bật tự động sao lưu ảnh" : "Đã tắt tự động sao lưu ảnh");
+                setAutoBackupPhotos(val);
+                BackupSyncService.saveConfig({ autoBackupPhotos: val });
+                toast.success(val ? "Đã bật tự động sao lưu ảnh & video mới" : "Đã tắt tự động sao lưu ảnh & video");
               }}
             />
           </div>
