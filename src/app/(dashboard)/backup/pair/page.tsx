@@ -440,6 +440,15 @@ function DevicePairContent() {
               <span className="font-medium text-foreground">{networkType}</span>
             </div>
 
+            {/* Auto-Sync on Web Change indicator */}
+            <div className="flex items-center justify-between text-xs p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                Tự động sao lưu khi Web thay đổi:
+              </span>
+              <span className="font-bold">Đã kích hoạt</span>
+            </div>
+
             {/* Submit Button */}
             <Button
               type="submit"

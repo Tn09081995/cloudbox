@@ -44,6 +44,7 @@ import {
 import { useUiStore } from "@/lib/hooks/useUiStore";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useFileMutations } from "@/lib/hooks/useFiles";
+import { useUploadStore } from "@/lib/hooks/useUploadStore";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -257,7 +258,8 @@ export function TopBar() {
                       input.onchange = (e) => {
                         const files = (e.target as HTMLInputElement).files;
                         if (files && files.length > 0) {
-                          toast.success(`Đã thêm ${files.length} tệp vào hàng đợi tải lên`);
+                          useUploadStore.getState().addFiles(files, null);
+                          toast.success(`Đang tải lên ${files.length} tệp tin...`);
                         }
                       };
                       input.click();
@@ -276,7 +278,8 @@ export function TopBar() {
                       input.onchange = (e) => {
                         const files = (e.target as HTMLInputElement).files;
                         if (files && files.length > 0) {
-                          toast.success(`Đã thêm thư mục với ${files.length} tệp`);
+                          useUploadStore.getState().addFiles(files, null);
+                          toast.success(`Đang tải lên thư mục với ${files.length} tệp...`);
                         }
                       };
                       input.click();

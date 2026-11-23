@@ -27,6 +27,8 @@ import {
   Sparkles,
   Edit2,
   Pencil,
+  History,
+  Zap,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
@@ -50,67 +52,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { vi } from "@/lib/i18n/vi";
 import { toast } from "sonner";
+import { BackupDevice, BackupSyncLog } from "@/types/backup";
+import { BackupSyncService } from "@/lib/services/backupSyncService";
+import { useBackupAutoSync } from "@/lib/hooks/useBackupAutoSync";
 
-export interface BackupDevice {
-  id: string;
-  name: string;
-  model: string;
-  os: string;
-  type: "ios" | "android" | "tablet" | "desktop";
-  isPrimary: boolean;
-  status: "connected" | "syncing" | "idle";
-  batteryLevel: number;
-  network: string;
-  storageUsed: string;
-  syncedStats: {
-    photos: number;
-    videos: number;
-    sizeString: string;
-    lastSync: string;
-  };
-}
-
-const DEFAULT_DEVICES: BackupDevice[] = [
-  {
-    id: "dev-iphone-16",
-    name: "iPhone cá nhân",
-    model: "iPhone 16 Pro Max",
-    os: "iOS 18.2",
-    type: "ios",
-    isPrimary: true,
-    status: "connected",
-    batteryLevel: 92,
-    network: "Wi-Fi 5G",
-    storageUsed: "128/256 GB",
-    syncedStats: {
-      photos: 2450,
-      videos: 182,
-      sizeString: "14,2 GB",
-      lastSync: "Hôm nay lúc 15:20",
-    },
-  },
-  {
-    id: "dev-samsung-s24",
-    name: "Samsung Galaxy",
-    model: "Samsung Galaxy S24 Ultra",
-    os: "Android 14 (One UI 6.1)",
-    type: "android",
-    isPrimary: false,
-    status: "idle",
-    batteryLevel: 88,
-    network: "Wi-Fi Văn phòng",
-    storageUsed: "142/512 GB",
-    syncedStats: {
-      photos: 820,
-      videos: 45,
-      sizeString: "4,6 GB",
-      lastSync: "Hôm qua lúc 22:10",
-    },
-  },
-];
+export type { BackupDevice };
 
 export default function MobileBackupPage() {
-  const [devices, setDevices] = useState<BackupDevice[]>(DEFAULT_DEVICES);
+  const {
+    isAutoBackupEnabled,
+    lastSyncLog,
+    isSyncing: isAutoSyncing,
+    triggerManualSync,
+    setAutoBackupOnWebChange,
+  } = useBackupAutoSync();
+
+  const [devices, setDevices] = useState<BackupDevice[]>(() =>
+    BackupSyncService.getDevices()
+  );
+  const [syncHistory, setSyncHistory] = useState<BackupSyncLog[]>(() =>
+    BackupSyncService.getSyncHistory()
+  );
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [syncingDeviceId, setSyncingDeviceId] = useState<string | null>(null);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
@@ -142,29 +104,30 @@ export default function MobileBackupPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   // Backup configuration toggle states
-  const [autoBackup, setAutoBackup] = useState(true);
   const [wifiOnly, setWifiOnly] = useState(true);
   const [originalQuality, setOriginalQuality] = useState(true);
   const [appFolders, setAppFolders] = useState(true);
   const [freeUpSpace, setFreeUpSpace] = useState(false);
 
-  // Load persisted devices on mount
+  // Sync devices and history on live event
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("cloudbox_backup_devices_v1");
-      if (stored) {
-        setDevices(JSON.parse(stored));
-      } else {
-        localStorage.setItem("cloudbox_backup_devices_v1", JSON.stringify(DEFAULT_DEVICES));
-      }
-    } catch {}
+    const refreshData = () => {
+      setDevices(BackupSyncService.getDevices());
+      setSyncHistory(BackupSyncService.getSyncHistory());
+    };
+
+    window.addEventListener("cloudbox:backup-synced", refreshData);
+    window.addEventListener("cloudbox:backup-devices-updated", refreshData);
+
+    return () => {
+      window.removeEventListener("cloudbox:backup-synced", refreshData);
+      window.removeEventListener("cloudbox:backup-devices-updated", refreshData);
+    };
   }, []);
 
   const saveDevices = (updated: BackupDevice[]) => {
+    BackupSyncService.saveDevices(updated);
     setDevices(updated);
-    try {
-      localStorage.setItem("cloudbox_backup_devices_v1", JSON.stringify(updated));
-    } catch {}
   };
 
   // Sync a single device
@@ -174,48 +137,20 @@ export default function MobileBackupPage() {
 
     setSyncingDeviceId(deviceId);
     toast.info(`Đang kiểm tra thư viện từ ${target.name}...`);
-
-    setTimeout(() => {
-      const addedPhotos = Math.floor(Math.random() * 4) + 1;
-      const updated = devices.map((d) => {
-        if (d.id === deviceId) {
-          return {
-            ...d,
-            status: "connected" as const,
-            syncedStats: {
-              ...d.syncedStats,
-              photos: d.syncedStats.photos + addedPhotos,
-              lastSync: "Vừa xong",
-            },
-          };
-        }
-        return d;
-      });
-      saveDevices(updated);
+    triggerManualSync(`Đồng bộ thiết bị ${target.name}`).finally(() => {
       setSyncingDeviceId(null);
-      toast.success(`Đã đồng bộ ${addedPhotos} ảnh mới từ ${target.name} lên CloudBox!`);
-    }, 1000);
+      toast.success(`Đã đồng bộ thiết bị ${target.name} với dữ liệu Web mới nhất!`);
+    });
   };
 
   // Sync all devices
   const handleSyncAll = () => {
     setIsSyncingAll(true);
     toast.info("Đang bắt đầu đồng bộ toàn bộ thiết bị đã liên kết...");
-
-    setTimeout(() => {
-      const updated = devices.map((d) => ({
-        ...d,
-        status: "connected" as const,
-        syncedStats: {
-          ...d.syncedStats,
-          photos: d.syncedStats.photos + 3,
-          lastSync: "Vừa xong",
-        },
-      }));
-      saveDevices(updated);
+    triggerManualSync("Đồng bộ toàn bộ thiết bị đã liên kết").finally(() => {
       setIsSyncingAll(false);
       toast.success(vi.mobileBackup.syncedJustNow);
-    }, 1200);
+    });
   };
 
   // Set device as primary
@@ -535,6 +470,78 @@ export default function MobileBackupPage() {
         </div>
       </div>
 
+      {/* Real-time Auto-Sync Status Card */}
+      <div className="p-4 md:p-5 rounded-2xl bg-surface border border-primary/25 shadow-xs relative overflow-hidden transition-all">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div
+              className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                isAutoBackupEnabled
+                  ? "bg-emerald-500/10 text-emerald-600"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              <Zap className={`h-5 w-5 ${isAutoSyncing || isSyncingAll ? "animate-pulse" : ""}`} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-foreground">
+                  Tự động cập nhật sao lưu khi Web thay đổi
+                </span>
+                <span
+                  className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 ${
+                    isAutoBackupEnabled
+                      ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/25"
+                      : "bg-surface-2 text-muted-foreground border border-border"
+                  }`}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      isAutoBackupEnabled ? "bg-emerald-500 animate-ping" : "bg-muted-foreground"
+                    }`}
+                  />
+                  {isAutoBackupEnabled ? "Đang đồng bộ thời gian thực" : "Đã tạm dừng"}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Khi bạn tải lên, chỉnh sửa, đổi tên hoặc xóa tệp tin trên trang web CloudBox, hệ thống sẽ tự động cập nhật ngay sang tất cả {devices.length} thiết bị liên kết mà không cần thao tác tay.
+              </p>
+              {lastSyncLog && (
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground pt-0.5">
+                  <span className="font-semibold text-foreground">Lần cập nhật gần nhất:</span>
+                  <span className="font-mono text-primary font-bold">{lastSyncLog.timeDisplay}</span>
+                  <span>•</span>
+                  <span className="font-medium text-foreground">{lastSyncLog.reason}</span>
+                  <span>•</span>
+                  <span className="text-emerald-600 font-medium">
+                    {lastSyncLog.photosCount} ảnh, {lastSyncLog.videosCount} video ({lastSyncLog.totalSize})
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 sm:self-center flex-shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleSyncAll()}
+              disabled={isSyncingAll || isAutoSyncing}
+              className="rounded-pill text-xs h-9 px-3 gap-1.5 border-border bg-surface hover:bg-surface-2"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isSyncingAll || isAutoSyncing ? "animate-spin text-primary" : ""}`} />
+              <span>{isSyncingAll || isAutoSyncing ? "Đang cập nhật..." : "Đồng bộ tức thì"}</span>
+            </Button>
+            <Switch
+              checked={isAutoBackupEnabled}
+              onCheckedChange={(val) => setAutoBackupOnWebChange(val)}
+              aria-label="Bật/Tắt tự động cập nhật sao lưu khi Web thay đổi"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Linked Devices Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -827,6 +834,34 @@ export default function MobileBackupPage() {
         </div>
 
         <div className="divide-y divide-border">
+          {/* Toggle 0: Auto backup when web changes */}
+          <div className="py-3.5 flex items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-foreground">
+                  Tự động cập nhật sao lưu khi web thay đổi
+                </p>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                  Khuyên dùng
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Tự động đồng bộ hóa hai chiều tức thì sang tất cả thiết bị đã liên kết khi có bất kỳ thay đổi nào trên trang web CloudBox (tải tệp lên, chỉnh sửa, đổi tên, xóa tệp).
+              </p>
+            </div>
+            <Switch
+              checked={isAutoBackupEnabled}
+              onCheckedChange={(val) => {
+                setAutoBackupOnWebChange(val);
+                toast.success(
+                  val
+                    ? "Đã bật tự động cập nhật sao lưu khi Web thay đổi"
+                    : "Đã tắt tự động cập nhật sao lưu khi Web thay đổi"
+                );
+              }}
+            />
+          </div>
+
           {/* Toggle 1: Auto backup photos & videos */}
           <div className="py-3.5 flex items-center justify-between gap-4">
             <div>
@@ -838,9 +873,9 @@ export default function MobileBackupPage() {
               </p>
             </div>
             <Switch
-              checked={autoBackup}
+              checked={isAutoBackupEnabled}
               onCheckedChange={(val) => {
-                setAutoBackup(val);
+                setAutoBackupOnWebChange(val);
                 toast.success(val ? "Đã bật tự động sao lưu ảnh" : "Đã tắt tự động sao lưu ảnh");
               }}
             />
@@ -922,6 +957,56 @@ export default function MobileBackupPage() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Auto Backup Live Activity History */}
+      <div className="p-6 rounded-card bg-surface border border-border shadow-card space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              <span>Nhật ký cập nhật sao lưu tự động (Thời gian thực)</span>
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Hệ thống tự động ghi lại mỗi khi có thay đổi trên Web và tiến hành đồng bộ sang các thiết bị
+            </p>
+          </div>
+          <span className="text-xs font-mono text-muted-foreground bg-surface-2 px-3 py-1 rounded-full border border-border">
+            {syncHistory.length} sự kiện
+          </span>
+        </div>
+
+        {syncHistory.length === 0 ? (
+          <div className="p-6 text-center text-xs text-muted-foreground bg-surface-2/40 rounded-2xl border border-dashed border-border">
+            Chưa có sự kiện sao lưu. Bất kỳ khi nào bạn tải lên, sửa hoặc xóa tệp trên Web, nhật ký tự động cập nhật tại đây.
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60 max-h-64 overflow-y-auto pr-1">
+            {syncHistory.slice(0, 10).map((log) => (
+              <div key={log.id} className="py-3 flex items-center justify-between text-xs gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{log.reason}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Đã đồng bộ {log.photosCount} ảnh · {log.videosCount} video · {log.documentsCount} tài liệu ({log.totalSize})
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="text-[11px] font-mono font-medium text-foreground block">
+                    {log.timeDisplay}
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-medium">
+                    {log.devicesCount} thiết bị liên kết
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Connect New Device Dialog (QR Code & Manual Link) */}

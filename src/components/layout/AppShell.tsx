@@ -7,6 +7,7 @@ import { TopBar } from "./TopBar";
 import { MobileTabBar } from "./MobileTabBar";
 import { useUiStore } from "@/lib/hooks/useUiStore";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import { useBackupAutoSync } from "@/lib/hooks/useBackupAutoSync";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -16,6 +17,9 @@ export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const { setSidebarCollapsed } = useUiStore();
   const { isAuthenticated, isInitialized, initialize } = useAuthStore();
+
+  // Activate real-time auto-backup sync across the entire web app
+  useBackupAutoSync();
 
   // Initialize auth state on mount
   useEffect(() => {

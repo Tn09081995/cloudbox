@@ -132,6 +132,15 @@ export class LocalFilesRepository implements FilesRepository {
     if (typeof window === "undefined") return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nodes));
+      window.dispatchEvent(
+        new CustomEvent("cloudbox:files-changed", {
+          detail: {
+            reason: "Web: Cập nhật tệp tin đám mây",
+            count: nodes.length,
+            timestamp: Date.now(),
+          },
+        })
+      );
     } catch {}
   }
 
