@@ -4,44 +4,50 @@
 
 @layer base {
   :root {
-    /* Section 4 Design Tokens - Light */
-    --bg: #F6F8FC;
+    /* Google Material You Design Tokens - Light */
+    --bg: #F0F4F9;
     --surface: #FFFFFF;
-    --surface-2: #F1F4F9;
-    --border: #E4E8F0;
-    --text: #0F172A;
-    --muted: #64748B;
-    --primary: #2563EB;
+    --surface-2: #E9EEF6;
+    --surface-variant: #DFE3E8;
+    --border: #DADCE0;
+    --text: #1F1F1F;
+    --muted: #444746;
+    --primary: #0B57D0;
     --primary-fg: #FFFFFF;
-    --primary-soft: #E8F0FF;
-    --primary-ink: #1D4ED8;
+    --primary-soft: #D3E3FD;
+    --primary-ink: #041E49;
+    --nav-active: #D3E3FD;
+    --nav-active-fg: #041E49;
 
     /* Semantics */
-    --success: #16A34A;
-    --warning: #D97706;
-    --danger: #DC2626;
+    --success: #1E8E3E;
+    --warning: #F9AB00;
+    --danger: #D93025;
 
     /* Base radii */
-    --radius: 8px;
+    --radius: 12px;
   }
 
   .dark {
-    /* Section 4 Design Tokens - Dark */
-    --bg: #0A0E17;
-    --surface: #111826;
-    --surface-2: #172033;
-    --border: #222D42;
-    --text: #E8EDF6;
-    --muted: #8B9AB5;
-    --primary: #4C8DFF;
-    --primary-fg: #0A0E17;
-    --primary-soft: #15264A;
-    --primary-ink: #4C8DFF;
+    /* Google Material You Design Tokens - Dark */
+    --bg: #131314;
+    --surface: #1E1F20;
+    --surface-2: #282A2C;
+    --surface-variant: #303134;
+    --border: #444746;
+    --text: #E3E3E3;
+    --muted: #C4C7C5;
+    --primary: #A8C7FA;
+    --primary-fg: #062E6F;
+    --primary-soft: #004A77;
+    --primary-ink: #C2E7FF;
+    --nav-active: #004A77;
+    --nav-active-fg: #C2E7FF;
 
     /* Semantics */
-    --success: #22C55E;
-    --warning: #F59E0B;
-    --danger: #EF4444;
+    --success: #34A853;
+    --warning: #FBBC04;
+    --danger: #EA4335;
   }
 }
 
@@ -59,20 +65,20 @@
   }
 }
 
-/* Custom smooth scrollbars */
+/* Custom Google style scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.25);
+  background: rgba(100, 116, 139, 0.2);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.45);
+  background: rgba(100, 116, 139, 0.35);
 }
 
 /* Prevent text clipping for Vietnamese diacritics */

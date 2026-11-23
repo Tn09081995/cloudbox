@@ -8,6 +8,7 @@ import { useUiStore } from "@/lib/hooks/useUiStore";
 import { useFileMutations } from "@/lib/hooks/useFiles";
 import { ContentHeader } from "./ContentHeader";
 import { SelectionToolbar } from "./SelectionToolbar";
+import { MemoriesCarousel } from "./MemoriesCarousel";
 import { FileGrid } from "./FileGrid";
 import { FileList } from "./FileList";
 import { FileContextMenu } from "./FileContextMenu";
@@ -208,6 +209,9 @@ export function FolderView({
             title={title}
           />
         )}
+
+        {/* Google Photos Highlights / Memories Carousel on Root View */}
+        {currentFolderId === null && !isTrash && !title && <MemoriesCarousel />}
 
         {/* Content Body */}
         {isLoading ? (

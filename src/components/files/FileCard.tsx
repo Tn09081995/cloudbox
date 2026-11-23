@@ -103,10 +103,10 @@ export function FileCard({
       onDragStart={handleDragStart}
       onClick={() => selectItem(file.id, false)}
       onDoubleClick={() => !isTrash && onPreview?.(file)}
-      className={`group relative flex flex-col rounded-card bg-surface border transition-all duration-cb select-none cursor-pointer overflow-hidden ${
+      className={`group relative flex flex-col rounded-2xl bg-surface border transition-all duration-cb select-none cursor-pointer overflow-hidden ${
         selected
           ? "border-primary ring-2 ring-primary bg-primary-soft/10 shadow-sm"
-          : "border-border shadow-card hover:shadow-card-hover hover:-translate-y-0.5 hover:border-border/80"
+          : "border-border/70 shadow-xs hover:shadow-md hover:border-primary/40"
       }`}
     >
       {/* 4:3 Aspect Ratio Mock Thumbnail */}
@@ -116,18 +116,18 @@ export function FileCard({
         {/* Hover overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
-        {/* Top-Left Hover Selection Checkbox */}
+        {/* Top-Left Hover Selection Checkbox (Circular Google style) */}
         <button
           type="button"
           onClick={handleSelectCheckbox}
-          className={`absolute top-2.5 left-2.5 h-5 w-5 rounded border flex items-center justify-center transition-all ${
+          className={`absolute top-2.5 left-2.5 h-6 w-6 rounded-full border flex items-center justify-center transition-all ${
             selected
-              ? "bg-primary border-primary text-white opacity-100"
+              ? "bg-primary border-primary text-white opacity-100 shadow-sm"
               : "bg-surface/90 backdrop-blur-sm border-border text-transparent opacity-0 group-hover:opacity-100 hover:border-primary shadow-xs"
           }`}
           aria-label="Chọn tệp"
         >
-          <span className="text-[10px] font-bold">✓</span>
+          <span className="text-xs font-bold leading-none">✓</span>
         </button>
 
         {/* Top-Right Quick Action Buttons on Hover */}

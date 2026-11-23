@@ -7,353 +7,410 @@ import {
   HardDrive,
   Clock,
   Star,
-  Users,
+  Image as ImageIcon,
+  FileText,
+  Lock,
   Trash2,
-  Settings,
-  Smartphone,
-  ChevronRight,
-  ChevronDown,
-  Folder,
-  PanelLeftClose,
-  PanelLeft,
+  Plus,
+  Cloud,
+  FolderPlus,
+  Upload,
   X,
+  Sparkles,
 } from "lucide-react";
-import { CloudBoxLogo } from "./CloudBoxLogo";
-import { NewMenuButton } from "./NewMenuButton";
-import { StorageMeter } from "./StorageMeter";
-import { InstallAppCard } from "./InstallAppCard";
-import { useUiStore } from "@/lib/hooks/useUiStore";
-import { vi } from "@/lib/i18n/vi";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
-interface FolderItem {
-  id: string;
-  name: string;
-  color?: string;
-  children?: FolderItem[];
-}
-
-// Sample folder hierarchy for tree view in sidebar
-const MOCK_FOLDER_TREE: FolderItem[] = [
-  {
-    id: "folder-work",
-    name: "Tài liệu công việc",
-    color: "#F5A524",
-    children: [
-      { id: "folder-projects", name: "Dự án CloudBox", color: "#3B82F6" },
-      { id: "folder-contracts", name: "Hợp đồng & Pháp lý", color: "#10B981" },
-    ],
-  },
-  {
-    id: "folder-design",
-    name: "Hình ảnh & Đồ họa",
-    color: "#8B5CF6",
-    children: [
-      { id: "folder-brand", name: "Bộ nhận diện thương hiệu", color: "#EC4899" },
-    ],
-  },
-  {
-    id: "folder-personal",
-    name: "Cá nhân & Gia đình",
-    color: "#06B6D4",
-  },
-  {
-    id: "folder-phone-backup",
-    name: "Sao lưu điện thoại",
-    color: "#3B82F6",
-    children: [
-      { id: "folder-camera", name: "Ảnh Camera (DCIM)", color: "#10B981" },
-      { id: "folder-screenshots", name: "Ảnh chụp màn hình", color: "#8B5CF6" },
-      { id: "folder-zalo", name: "Tệp Zalo & Tin nhắn", color: "#06B6D4" },
-    ],
-  },
-];
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useUiStore } from "@/lib/hooks/useUiStore";
+import { useStorageUsage } from "@/lib/hooks/useFiles";
+import { formatBytes } from "@/lib/utils/formatters";
+import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function Sidebar({ className = "" }: { className?: string }) {
   const pathname = usePathname();
   const {
     sidebarCollapsed,
-    setSidebarCollapsed,
     mobileMenuOpen,
     setMobileMenuOpen,
+    setNewFolderOpen,
+    setNewTextFileOpen,
   } = useUiStore();
 
-  const [folderTreeOpen, setFolderTreeOpen] = useState(true);
-  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
-    "folder-work": true,
-  });
+  const { data: storage } = useStorageUsage();
+  const [buyStorageOpen, setBuyStorageOpen] = useState(false);
 
-  const toggleFolder = (folderId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setExpandedFolders((prev) => ({ ...prev, [folderId]: !prev[folderId] }));
-  };
+  // Storage calculation
+  const used = storage?.usedBytes || 12400000000; // 12,4 GB
+  const quota = storage?.totalBytes || 214748364800; // 200 GB
+  const percentage = Math.min(100, Math.max(6, Math.round((used / quota) * 100)));
 
   const navItems = [
     {
       href: "/drive",
-      label: vi.nav.myDrive,
+      label: "Tệp của tôi",
       icon: HardDrive,
-      hasTree: true,
-      active: pathname.startsWith("/drive"),
+      active: pathname === "/drive" || pathname.startsWith("/drive/"),
     },
     {
       href: "/recent",
-      label: vi.nav.recent,
+      label: "Gần đây",
       icon: Clock,
       active: pathname === "/recent",
     },
     {
       href: "/starred",
-      label: vi.nav.starred,
+      label: "Có gắn dấu sao",
       icon: Star,
       active: pathname === "/starred",
     },
     {
-      href: "/shared",
-      label: vi.nav.shared,
-      icon: Users,
-      active: pathname === "/shared",
+      href: "/photos",
+      label: "Ảnh & Video",
+      icon: ImageIcon,
+      active: pathname === "/photos",
     },
     {
-      href: "/backup",
-      label: vi.nav.backup,
-      icon: Smartphone,
-      active: pathname === "/backup",
+      href: "/documents",
+      label: "Tài liệu",
+      icon: FileText,
+      active: pathname === "/documents",
+    },
+    {
+      href: "/locked",
+      label: "Thư mục khóa",
+      icon: Lock,
+      active: pathname === "/locked",
     },
     {
       href: "/trash",
-      label: vi.nav.trash,
+      label: "Thùng rác",
       icon: Trash2,
       active: pathname === "/trash",
     },
-    {
-      href: "/settings",
-      label: vi.nav.settings,
-      icon: Settings,
-      active: pathname === "/settings",
-    },
   ];
 
-  const sidebarContent = (
-    <div
-      className={`flex flex-col h-full bg-surface border-r border-border transition-all duration-cb select-none ${
-        sidebarCollapsed ? "w-[72px]" : "w-[264px]"
-      } ${className}`}
-    >
-      {/* Header: Logo & Collapse Button */}
-      <div
-        className={`h-16 flex items-center justify-between border-b border-border/60 flex-shrink-0 ${
-          sidebarCollapsed ? "px-3 justify-center" : "px-4"
-        }`}
+  return (
+    <TooltipProvider delayDuration={200}>
+      {/* ======================================================== */}
+      {/* DESKTOP / TABLET SIDEBAR */}
+      {/* ======================================================== */}
+      <aside
+        className={`hidden md:flex flex-col flex-shrink-0 transition-all duration-300 ease-out bg-background select-none ${
+          sidebarCollapsed ? "w-[72px]" : "w-[240px] xl:w-[260px]"
+        } ${className}`}
       >
-        <CloudBoxLogo collapsed={sidebarCollapsed} />
-        <div className="flex items-center gap-1">
-          {/* Mobile close button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(false)}
-            className="md:hidden p-1.5 rounded-btn text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
-            aria-label="Đóng thanh điều hướng"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <div className="flex-1 flex flex-col justify-between p-3 overflow-y-auto overflow-x-hidden">
+          <div className="space-y-4">
+            {/* Google Drive "+ Mới" Pill Button */}
+            <div className="pt-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={`flex items-center gap-3 rounded-full bg-surface hover:bg-surface-2 text-foreground border border-border/60 shadow-md hover:shadow-lg transition-all duration-cb active:scale-95 ${
+                      sidebarCollapsed
+                        ? "h-12 w-12 justify-center mx-auto"
+                        : "h-12 px-5 w-full font-medium"
+                    }`}
+                    title="Tạo mới hoặc tải lên"
+                  >
+                    <Plus className="h-5 w-5 text-primary stroke-[2.5] flex-shrink-0" />
+                    {!sidebarCollapsed && (
+                      <span className="text-sm font-semibold tracking-tight">
+                        Mới
+                      </span>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align={sidebarCollapsed ? "center" : "start"}
+                  side={sidebarCollapsed ? "right" : "bottom"}
+                  className="w-56 p-1.5 rounded-2xl bg-surface border border-border shadow-xl font-sans"
+                >
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.multiple = true;
+                      input.onchange = (e) => {
+                        const files = (e.target as HTMLInputElement).files;
+                        if (files && files.length > 0) {
+                          toast.success(`Đã thêm ${files.length} tệp để tải lên`);
+                        }
+                      };
+                      input.click();
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl cursor-pointer font-medium"
+                  >
+                    <Upload className="h-4 w-4 text-primary" />
+                    <span>Tải tệp lên</span>
+                  </DropdownMenuItem>
 
-          {/* Desktop collapse toggle */}
-          <button
-            type="button"
-            onClick={() => setSidebarCollapsed((prev) => !prev)}
-            className={`hidden md:flex p-1.5 rounded-btn text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors ${
-              sidebarCollapsed ? "mt-2" : ""
-            }`}
-            aria-label={sidebarCollapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"}
-          >
-            {sidebarCollapsed ? (
-              <PanelLeft className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      </div>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.webkitdirectory = true;
+                      input.onchange = (e) => {
+                        const files = (e.target as HTMLInputElement).files;
+                        if (files && files.length > 0) {
+                          toast.success(`Đã thêm thư mục với ${files.length} tệp`);
+                        }
+                      };
+                      input.click();
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl cursor-pointer font-medium"
+                  >
+                    <Upload className="h-4 w-4 text-kind-folder" />
+                    <span>Tải thư mục lên</span>
+                  </DropdownMenuItem>
 
-      {/* Primary Action Button: + Mới */}
-      <div className={`p-3 flex-shrink-0 ${sidebarCollapsed ? "px-2" : "px-4"}`}>
-        <NewMenuButton collapsed={sidebarCollapsed} />
-      </div>
+                  <DropdownMenuSeparator className="my-1 bg-border" />
 
-      {/* Navigation List */}
-      <div className="flex-1 overflow-y-auto px-2 space-y-1 py-1">
-        <TooltipProvider delayDuration={150}>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isItemActive = item.active;
+                  <DropdownMenuItem
+                    onClick={() => setNewFolderOpen(true)}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl cursor-pointer font-medium"
+                  >
+                    <FolderPlus className="h-4 w-4 text-kind-folder" />
+                    <span>Thư mục mới</span>
+                  </DropdownMenuItem>
 
-            if (sidebarCollapsed) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href={item.href}
-                      className={`relative flex items-center justify-center h-10 w-10 mx-auto rounded-btn transition-colors group ${
-                        isItemActive
-                          ? "bg-primary-soft text-primary font-medium"
-                          : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
-                      }`}
-                      aria-label={item.label}
-                    >
-                      {isItemActive && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-primary" />
-                      )}
-                      <Icon className="h-4 w-4 stroke-[2]" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={10}>
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
+                  <DropdownMenuItem
+                    onClick={() => setNewTextFileOpen(true)}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl cursor-pointer font-medium"
+                  >
+                    <FileText className="h-4 w-4 text-kind-document" />
+                    <span>Tệp văn bản mới</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
-            return (
-              <div key={item.href}>
-                <div className="relative group">
+            {/* Navigation List (Material You Pill items) */}
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const linkContent = (
                   <Link
+                    key={item.href}
                     href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`relative flex items-center gap-3 px-3 py-2 rounded-btn text-sm transition-all duration-cb ${
-                      isItemActive
-                        ? "bg-primary-soft text-primary font-medium shadow-none"
-                        : "text-muted-foreground hover:text-foreground hover:bg-surface-2 font-normal"
+                    className={`flex items-center gap-4 h-10 px-3.5 rounded-full text-xs font-medium transition-colors ${
+                      sidebarCollapsed ? "justify-center px-0 w-10 mx-auto" : "w-full"
+                    } ${
+                      item.active
+                        ? "bg-nav-active text-nav-active-foreground font-semibold"
+                        : "text-foreground hover:bg-surface-2 text-muted hover:text-foreground"
                     }`}
                   >
-                    {isItemActive && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-primary" />
-                    )}
-                    <Icon className="h-4 w-4 flex-shrink-0 stroke-[2]" />
-                    <span className="truncate flex-1">{item.label}</span>
-
-                    {item.hasTree && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setFolderTreeOpen((prev) => !prev);
-                        }}
-                        className="p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
-                        aria-label="Mở rộng danh sách thư mục"
-                      >
-                        {folderTreeOpen ? (
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        ) : (
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    )}
+                    <Icon className={`h-4 w-4 flex-shrink-0 ${item.active ? "text-primary stroke-[2.5]" : ""}`} />
+                    {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
                   </Link>
+                );
+
+                if (sidebarCollapsed) {
+                  return (
+                    <Tooltip key={item.href}>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" className="font-sans text-xs">
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return linkContent;
+              })}
+            </nav>
+          </div>
+
+          {/* Bottom Section: Divider, Storage Meter & Mua thêm dung lượng */}
+          <div className="pt-4 space-y-3">
+            <hr className="border-border/60" />
+
+            {sidebarCollapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setBuyStorageOpen(true)}
+                    className="w-10 h-10 mx-auto rounded-full bg-surface hover:bg-surface-2 flex items-center justify-center text-primary transition-colors"
+                  >
+                    <Cloud className="h-5 w-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  {formatBytes(used)} / {formatBytes(quota)}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <div className="px-3 space-y-2">
+                <div className="flex items-center justify-between text-xs font-medium">
+                  <span className="text-muted">Dung lượng</span>
+                  <span className="text-foreground font-mono text-[11px]">
+                    {formatBytes(used)} / {formatBytes(quota)}
+                  </span>
                 </div>
 
-                {/* Sub-tree for "Tệp của tôi" */}
-                {item.hasTree && folderTreeOpen && (
-                  <div className="ml-4 pl-2 my-1 border-l border-border/80 space-y-0.5">
-                    {MOCK_FOLDER_TREE.map((folder) => {
-                      const isFolderExpanded = !!expandedFolders[folder.id];
-                      const hasSub = folder.children && folder.children.length > 0;
-                      return (
-                        <div key={folder.id}>
-                          <Link
-                            href={`/drive/${folder.id}`}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="flex items-center gap-2 px-2 py-1.5 rounded-btn text-xs text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors group"
-                          >
-                            {hasSub ? (
-                              <button
-                                type="button"
-                                onClick={(e) => toggleFolder(folder.id, e)}
-                                className="p-0.5 text-muted-foreground hover:text-foreground"
-                              >
-                                {isFolderExpanded ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3" />
-                                )}
-                              </button>
-                            ) : (
-                              <span className="w-4" />
-                            )}
-                            <Folder
-                              className="h-3.5 w-3.5 flex-shrink-0 fill-current"
-                              style={{ color: folder.color || "#F5A524" }}
-                            />
-                            <span className="truncate">{folder.name}</span>
-                          </Link>
+                {/* Material Thin Progress bar */}
+                <div className="h-1.5 w-full rounded-full bg-surface-variant overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
 
-                          {hasSub && isFolderExpanded && (
-                            <div className="ml-5 pl-2 my-0.5 border-l border-border/60 space-y-0.5">
-                              {folder.children?.map((sub) => (
-                                <Link
-                                  key={sub.id}
-                                  href={`/drive/${sub.id}`}
-                                  onClick={() => setMobileMenuOpen(false)}
-                                  className="flex items-center gap-2 px-2 py-1 rounded-btn text-[11px] text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
-                                >
-                                  <Folder
-                                    className="h-3 w-3 flex-shrink-0 fill-current"
-                                    style={{ color: sub.color || "#3B82F6" }}
-                                  />
-                                  <span className="truncate">{sub.name}</span>
-                                </Link>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <p className="text-[11px] text-muted">
+                  Đã sử dụng {percentage}% bộ nhớ
+                </p>
+
+                {/* Mua thêm dung lượng Pill Button */}
+                <button
+                  type="button"
+                  onClick={() => setBuyStorageOpen(true)}
+                  className="w-full mt-1 py-1.5 px-3 rounded-full border border-primary/40 text-primary hover:bg-primary-soft/30 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Mua thêm dung lượng</span>
+                </button>
               </div>
-            );
-          })}
-        </TooltipProvider>
-      </div>
-
-      {/* Bottom Area: Storage meter & dismissible install app card */}
-      <div
-        className={`p-3 space-y-2 border-t border-border/60 flex-shrink-0 ${
-          sidebarCollapsed ? "px-2" : "px-3"
-        }`}
-      >
-        <InstallAppCard collapsed={sidebarCollapsed} />
-        <StorageMeter collapsed={sidebarCollapsed} />
-      </div>
-    </div>
-  );
-
-  return (
-    <>
-      {/* Desktop / Tablet Sidebar */}
-      <aside className="hidden md:block h-screen sticky top-0 flex-shrink-0 z-30">
-        {sidebarContent}
+            )}
+          </div>
+        </div>
       </aside>
 
-      {/* Mobile Drawer (< 768px) */}
+      {/* ======================================================== */}
+      {/* MOBILE DRAWER */}
+      {/* ======================================================== */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
+        <div className="fixed inset-0 z-50 md:hidden flex animate-in fade-in duration-200">
+          {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="relative flex-1 max-w-[280px] w-full bg-surface shadow-2xl h-full z-10 animate-in slide-in-from-left duration-200">
-            {sidebarContent}
+
+          {/* Drawer Sheet */}
+          <div className="relative w-72 max-w-[85vw] bg-surface h-full flex flex-col p-4 shadow-2xl z-10 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <Link
+                href="/drive"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2"
+              >
+                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <Cloud className="h-4 w-4 fill-primary text-primary" />
+                </div>
+                <span className="text-lg font-bold text-foreground">
+                  Cloud<span className="text-primary">Box</span>
+                </span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1 rounded-full text-muted hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Mobile Nav Links */}
+            <nav className="flex-1 space-y-1 overflow-y-auto">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3.5 h-11 px-4 rounded-full text-sm font-medium transition-colors ${
+                      item.active
+                        ? "bg-nav-active text-nav-active-foreground font-semibold"
+                        : "text-foreground hover:bg-surface-2 text-muted"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${item.active ? "text-primary stroke-[2.5]" : ""}`} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Mobile Storage Info */}
+            <div className="p-3 rounded-2xl bg-surface-2 space-y-2 border border-border/50 text-xs">
+              <div className="flex items-center justify-between font-medium">
+                <span>Dung lượng</span>
+                <span className="font-mono text-[11px]">
+                  {formatBytes(used)} / {formatBytes(quota)}
+                </span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
-    </>
+
+      {/* Mua thêm dung lượng Dialog */}
+      <Dialog open={buyStorageOpen} onOpenChange={setBuyStorageOpen}>
+        <DialogContent className="max-w-md p-6 rounded-3xl bg-surface border border-border shadow-xl">
+          <DialogHeader>
+            <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2">
+              <Cloud className="h-5 w-5 fill-primary text-primary" />
+            </div>
+            <DialogTitle className="text-base font-bold text-foreground">
+              Nâng cấp gói dung lượng CloudBox
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted leading-relaxed">
+              Nhận thêm dung lượng lưu trữ an toàn cho ảnh, video và toàn bộ tệp tin của bạn.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2 text-xs">
+            <div className="p-4 rounded-2xl border-2 border-primary bg-primary-soft/20 flex items-center justify-between">
+              <div>
+                <p className="font-bold text-sm text-foreground">Gói Tiêu Chuẩn 200 GB</p>
+                <p className="text-muted">Đang sử dụng · Miễn phí theo tài khoản</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-primary text-white text-[10px] font-bold">
+                Hiện tại
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl border border-border bg-surface-2 hover:border-primary/50 transition-colors flex items-center justify-between">
+              <div>
+                <p className="font-bold text-sm text-foreground">Gói Mở Rộng 2 TB (2.000 GB)</p>
+                <p className="text-muted">45.000 đ / tháng · Sao lưu không giới hạn</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  toast.success("Đã chọn gói 2 TB! Tính năng thanh toán sẽ mở trong giai đoạn sau.");
+                  setBuyStorageOpen(false);
+                }}
+                className="px-3 py-1.5 rounded-full bg-primary text-white font-semibold text-xs hover:bg-primary-ink"
+              >
+                Nâng cấp
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>
   );
 }

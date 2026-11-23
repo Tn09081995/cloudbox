@@ -1,17 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Be_Vietnam_Pro } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/AppProviders";
 
-const beVietnamPro = Be_Vietnam_Pro({
-  weight: ["400", "500", "600", "700"],
+const roboto = Roboto({
+  weight: ["300", "400", "500", "700"],
   subsets: ["latin", "vietnamese"],
   display: "swap",
-  variable: "--font-be-vietnam-pro",
+  variable: "--font-roboto",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#2563EB",
+  themeColor: "#0B57D0",
   width: "device-width",
   initialScale: 1,
 };
@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "CloudBox — Lưu trữ đám mây cá nhân",
   description:
-    "Không gian lưu trữ cá nhân tinh gọn, hiện đại và bảo mật. Trải nghiệm mượt mà, quản lý tệp tin trực quan.",
+    "Không gian lưu trữ cá nhân thông minh, phong cách Material You. Quản lý tệp tin, xem ảnh & video mượt mà.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={beVietnamPro.variable} suppressHydrationWarning>
+    <html lang="vi" className={roboto.variable} suppressHydrationWarning>
       <body className="font-sans antialiased min-h-screen">
         <AppProviders>{children}</AppProviders>
       </body>

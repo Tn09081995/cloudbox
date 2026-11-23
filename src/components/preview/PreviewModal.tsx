@@ -251,6 +251,7 @@ export function PreviewModal({
               }}
             >
               <FileThumbnail
+                file={activeFile}
                 kind="image"
                 name={activeFile.name}
                 seed={activeFile.thumbnail_seed || activeFile.id}

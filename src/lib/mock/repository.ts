@@ -3,7 +3,7 @@ import { createInitialSeedNodes } from "./seed";
 import { removeDiacritics } from "@/lib/utils/formatters";
 import { FileKind, getFileKind } from "@/lib/utils/file-types";
 
-const STORAGE_KEY = "cloudbox_mock_nodes_v5";
+const STORAGE_KEY = "cloudbox_material_nodes_v1";
 
 function getCurrentUserOwner(): NodeOwner {
   if (typeof window !== "undefined") {
@@ -53,6 +53,10 @@ export interface FilesRepository {
   getStarredFiles(): Promise<FileNode[]>;
   getSharedFiles(): Promise<FileNode[]>;
   getTrashFiles(): Promise<FileNode[]>;
+  getPhotosAndVideos(): Promise<FileNode[]>;
+  getDocuments(): Promise<FileNode[]>;
+  getLockedFiles(): Promise<FileNode[]>;
+  toggleLock(id: string): Promise<boolean>;
   search(query: string): Promise<FileNode[]>;
   getStorageUsage(): Promise<StorageUsage>;
 
@@ -110,13 +114,7 @@ export class LocalFilesRepository implements FilesRepository {
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as FileNode[];
-        // Filter out any remaining mock sample files
-        const cleaned = parsed.filter((n) => !isSampleMockFile(n));
-        if (cleaned.length !== parsed.length) {
-          this.saveNodes(cleaned);
-        }
-        return cleaned;
+        return JSON.parse(stored) as FileNode[];
       } else {
         const seed = createInitialSeedNodes();
         const initial = [...userCreatedFiles, ...seed];
@@ -141,16 +139,59 @@ export class LocalFilesRepository implements FilesRepository {
     await delay(180);
     const nodes = this.getNodes();
     return nodes
-      .filter((node) => !node.is_trashed && node.parent_id === folderId)
+      .filter((node) => !node.is_trashed && !node.is_locked && node.parent_id === folderId)
       .map((node) => {
         if (node.kind === "folder") {
           const childrenCount = nodes.filter(
-            (c) => !c.is_trashed && c.parent_id === node.id
+            (c) => !c.is_trashed && !c.is_locked && c.parent_id === node.id
           ).length;
           return { ...node, item_count: childrenCount };
         }
         return node;
       });
+  }
+
+  async getPhotosAndVideos(): Promise<FileNode[]> {
+    await delay(180);
+    const nodes = this.getNodes();
+    return nodes
+      .filter(
+        (node) => !node.is_trashed && !node.is_locked && (node.kind === "image" || node.kind === "video")
+      )
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  async getDocuments(): Promise<FileNode[]> {
+    await delay(180);
+    const nodes = this.getNodes();
+    return nodes
+      .filter(
+        (node) =>
+          !node.is_trashed &&
+          !node.is_locked &&
+          (node.kind === "document" ||
+            node.kind === "pdf" ||
+            node.kind === "spreadsheet" ||
+            node.kind === "code" ||
+            node.kind === "archive")
+      )
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  async getLockedFiles(): Promise<FileNode[]> {
+    await delay(180);
+    const nodes = this.getNodes();
+    return nodes.filter((node) => !node.is_trashed && node.is_locked);
+  }
+
+  async toggleLock(id: string): Promise<boolean> {
+    await delay(120);
+    const nodes = this.getNodes();
+    const node = nodes.find((n) => n.id === id);
+    if (!node) return false;
+    node.is_locked = !node.is_locked;
+    this.saveNodes(nodes);
+    return !!node.is_locked;
   }
 
   async getBreadcrumbs(folderId: string | null): Promise<BreadcrumbSegment[]> {

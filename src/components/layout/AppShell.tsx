@@ -29,7 +29,7 @@ export function AppShell({ children }: AppShellProps) {
     }
   }, [isInitialized, isAuthenticated, router]);
 
-  // Responsive listener: auto-collapse to 72px rail below 1100px
+  // Responsive listener: auto-collapse below 1100px
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1100 && window.innerWidth >= 768) {
@@ -54,24 +54,24 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased font-sans">
-      {/* Sidebar (Desktop / Tablet & Mobile Drawer) */}
-      <Sidebar />
+    <div className="flex flex-col h-screen w-full bg-background overflow-hidden text-foreground antialiased font-sans select-none">
+      {/* Google Material You TopBar */}
+      <TopBar />
 
-      {/* Main Column */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Sticky Top Bar (64px) */}
-        <TopBar />
+      {/* Body: Sidebar + Floating Main Surface */}
+      <div className="flex-1 flex min-w-0 overflow-hidden">
+        {/* Sidebar (Desktop icon-rail/expanded & Mobile Drawer) */}
+        <Sidebar />
 
-        {/* Independently Scrolling Content Area */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8 pb-20 md:pb-8">
-          <div className="w-full">
+        {/* Floating Content Surface: Thẻ bo góc 24px nằm trên nền ngoài xám xanh, cuộn độc lập */}
+        <main className="flex-1 min-w-0 overflow-hidden p-2 md:p-3 md:pl-1 md:pr-4 md:pb-4 flex flex-col">
+          <div className="flex-1 bg-surface rounded-[24px] shadow-sm border border-border/50 overflow-y-auto overflow-x-hidden p-5 md:p-8 select-text">
             {children}
           </div>
         </main>
       </div>
 
-      {/* Mobile Bottom Tab Bar */}
+      {/* Mobile Bottom Navigation Bar */}
       <MobileTabBar />
     </div>
   );

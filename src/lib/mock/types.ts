@@ -51,6 +51,8 @@ export interface FileNode {
   owner: NodeOwner;
   content?: string; // for text / code files
   thumbnail_seed?: string; // seed for procedural SVG rendering
+  thumbnail_url?: string; // direct image url (e.g. picsum.photos)
+  is_locked?: boolean; // for Locked Folder (Thư mục khóa)
   share_settings?: ShareSettings;
   versions?: NodeVersion[];
   activities?: NodeActivity[];

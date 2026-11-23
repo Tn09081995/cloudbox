@@ -153,12 +153,12 @@ export function FolderCard({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={() => selectItem(folder.id, false)}
-      className={`group relative flex items-center justify-between p-3 rounded-card bg-surface border transition-all duration-cb select-none cursor-pointer ${
+      className={`group relative flex items-center justify-between p-3 rounded-2xl bg-surface-2 border transition-all duration-cb select-none cursor-pointer ${
         selected
-          ? "border-primary ring-2 ring-primary bg-primary-soft/20 shadow-sm"
+          ? "border-primary ring-2 ring-primary bg-primary-soft/30 shadow-xs"
           : isDragOver
           ? "border-primary ring-2 ring-primary/60 bg-primary-soft/30"
-          : "border-border shadow-card hover:shadow-card-hover hover:-translate-y-0.5 hover:border-border/80"
+          : "border-transparent hover:border-border/80 hover:bg-surface-variant/70 shadow-xs"
       }`}
     >
       {/* Click target wrapper: in Trash, don't navigate */}
@@ -175,18 +175,18 @@ export function FolderCard({
         </Link>
       )}
 
-      {/* Top Left Checkbox (visible on hover or when selected) */}
+      {/* Top Left Circular Checkbox (visible on hover or when selected) */}
       <button
         type="button"
         onClick={handleSelectCheckbox}
-        className={`absolute top-2 left-2 h-5 w-5 rounded border flex items-center justify-center transition-all ${
+        className={`absolute top-2 left-2 h-6 w-6 rounded-full border flex items-center justify-center transition-all ${
           selected
-            ? "bg-primary border-primary text-white opacity-100"
-            : "bg-surface border-border text-transparent opacity-0 group-hover:opacity-100 hover:border-primary"
+            ? "bg-primary border-primary text-white opacity-100 shadow-xs"
+            : "bg-surface border-border text-transparent opacity-0 group-hover:opacity-100 hover:border-primary shadow-xs"
         }`}
         aria-label="Chọn thư mục"
       >
-        <span className="text-[10px] font-bold">✓</span>
+        <span className="text-xs font-bold leading-none">✓</span>
       </button>
 
       {/* Right Actions: Star toggle & Hover-only ⋮ menu */}

@@ -12,6 +12,9 @@ export const QUERY_KEYS = {
   trash: ["files", "trash"],
   search: (q: string) => ["files", "search", q],
   storage: ["files", "storage"],
+  photos: ["files", "photos"],
+  documents: ["files", "documents"],
+  locked: ["files", "locked"],
 };
 
 export function useFolderFiles(folderId: string | null = null) {
@@ -79,6 +82,27 @@ export function useStorageUsage() {
   });
 }
 
+export function usePhotosAndVideos() {
+  return useQuery({
+    queryKey: QUERY_KEYS.photos,
+    queryFn: () => repository.getPhotosAndVideos(),
+  });
+}
+
+export function useDocuments() {
+  return useQuery({
+    queryKey: QUERY_KEYS.documents,
+    queryFn: () => repository.getDocuments(),
+  });
+}
+
+export function useLockedFiles() {
+  return useQuery({
+    queryKey: QUERY_KEYS.locked,
+    queryFn: () => repository.getLockedFiles(),
+  });
+}
+
 export function useFileMutations() {
   const queryClient = useQueryClient();
 
@@ -142,6 +166,11 @@ export function useFileMutations() {
     onSuccess: invalidateAll,
   });
 
+  const toggleLockMutation = useMutation({
+    mutationFn: (id: string) => repository.toggleLock(id),
+    onSuccess: invalidateAll,
+  });
+
   const updateColorMutation = useMutation({
     mutationFn: ({ id, color }: { id: string; color: string }) =>
       repository.updateFolderColor(id, color),
@@ -170,6 +199,7 @@ export function useFileMutations() {
     deletePermanently: deleteForeverMutation.mutateAsync,
     emptyTrash: emptyTrashMutation.mutateAsync,
     toggleStar: toggleStarMutation.mutateAsync,
+    toggleLock: toggleLockMutation.mutateAsync,
     updateColor: updateColorMutation.mutateAsync,
     updateShare: updateShareMutation.mutateAsync,
     resetData: resetDataMutation.mutateAsync,

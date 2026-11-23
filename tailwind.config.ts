@@ -10,7 +10,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-be-vietnam-pro)", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["Google Sans", "var(--font-roboto)", "Roboto", "Arial", "sans-serif"],
       },
       colors: {
         border: "var(--border)",
@@ -21,12 +21,17 @@ export default {
         surface: {
           DEFAULT: "var(--surface)",
           2: "var(--surface-2)",
+          variant: "var(--surface-variant)",
         },
         primary: {
           DEFAULT: "var(--primary)",
           foreground: "var(--primary-fg)",
           soft: "var(--primary-soft)",
           ink: "var(--primary-ink)",
+        },
+        "nav-active": {
+          DEFAULT: "var(--nav-active)",
+          foreground: "var(--nav-active-fg)",
         },
         muted: {
           DEFAULT: "var(--surface-2)",
@@ -47,34 +52,39 @@ export default {
         },
         kind: {
           folder: "#F5A524",
-          image: "#3B82F6",
-          video: "#8B5CF6",
-          audio: "#EC4899",
-          document: "#10B981",
-          pdf: "#EF4444",
-          spreadsheet: "#22C55E",
-          archive: "#F59E0B",
-          code: "#06B6D4",
-          other: "#64748B",
+          image: "#1A73E8",
+          video: "#9334E6",
+          audio: "#E52592",
+          document: "#1E8E3E",
+          pdf: "#EA4335",
+          spreadsheet: "#0F9D58",
+          archive: "#F9AB00",
+          code: "#12B5CB",
+          other: "#5F6368",
         },
       },
       borderRadius: {
-        btn: "8px",
-        card: "14px",
-        dialog: "20px",
+        pill: "9999px",
+        btn: "9999px",
+        content: "24px",
+        card: "16px",
+        chip: "12px",
+        dialog: "28px",
       },
       lineHeight: {
         vietnamese: "1.5",
       },
       transitionTimingFunction: {
-        cb: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        cb: "cubic-bezier(0.2, 0, 0, 1)",
       },
       transitionDuration: {
         cb: "180ms",
       },
       boxShadow: {
-        card: "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
-        "card-hover": "0 6px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.04)",
+        soft: "0 1px 3px rgba(0,0,0,0.06)",
+        card: "0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 3px 1px rgba(60,64,67,0.06)",
+        "card-hover": "0 2px 6px 0 rgba(60,64,67,0.15), 0 4px 8px 3px rgba(60,64,67,0.08)",
+        fab: "0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15)",
       },
     },
   },

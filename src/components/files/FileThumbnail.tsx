@@ -34,6 +34,27 @@ export function FileThumbnail({
   // Generate a deterministic integer from string seed
   const hash = (actualSeed + actualName).split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
 
+  if (file?.thumbnail_url) {
+    return (
+      <div className={`relative w-full h-full overflow-hidden flex items-center justify-center select-none bg-surface-2 ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={file.thumbnail_url}
+          alt={actualName}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+        />
+        {actualKind === "video" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <div className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center shadow-md backdrop-blur-xs">
+              <Play className="h-4 w-4 fill-white ml-0.5" />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (actualKind === "image") {
     // Elegant geometric / landscape SVG artwork
     const hue1 = (hash * 37) % 360;
