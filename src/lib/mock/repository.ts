@@ -114,7 +114,16 @@ export class LocalFilesRepository implements FilesRepository {
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored) as FileNode[];
+        let nodes = JSON.parse(stored) as FileNode[];
+        // User requested: Delete all images currently on the web
+        const nonImages = nodes.filter(
+          (n) => n.kind !== "image" && (!n.mime_type || !n.mime_type.startsWith("image/"))
+        );
+        if (nonImages.length !== nodes.length) {
+          this.saveNodes(nonImages);
+          nodes = nonImages;
+        }
+        return nodes;
       } else {
         const seed = createInitialSeedNodes();
         const initial = [...userCreatedFiles, ...seed];

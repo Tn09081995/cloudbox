@@ -22,7 +22,7 @@ function getDaysAgo(days: number, hour = 14, minute = 30): string {
 }
 
 export function createInitialSeedNodes(): FileNode[] {
-  return [
+  const rawNodes: FileNode[] = [
     // ==========================================
     // 6 FOLDERS (Material You chips)
     // ==========================================
@@ -572,4 +572,9 @@ export function createInitialSeedNodes(): FileNode[] {
       thumbnail_seed: "locked-wallet",
     },
   ];
+
+  // User requested: Delete all images currently on the web
+  return rawNodes.filter(
+    (n) => n.kind !== "image" && (!n.mime_type || !n.mime_type.startsWith("image/"))
+  );
 }

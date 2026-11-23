@@ -16,10 +16,10 @@ export const DEFAULT_BACKUP_DEVICES: BackupDevice[] = [
     network: "Wi-Fi 5G",
     storageUsed: "128/256 GB",
     syncedStats: {
-      photos: 2450,
-      videos: 182,
-      sizeString: "14,2 GB",
-      lastSync: "Hôm nay lúc 15:20",
+      photos: 0,
+      videos: 2,
+      sizeString: "112 MB",
+      lastSync: "Vừa xong",
     },
   },
   {
@@ -34,10 +34,10 @@ export const DEFAULT_BACKUP_DEVICES: BackupDevice[] = [
     network: "Wi-Fi Văn phòng",
     storageUsed: "142/512 GB",
     syncedStats: {
-      photos: 820,
-      videos: 45,
-      sizeString: "6,8 GB",
-      lastSync: "Hôm qua lúc 18:40",
+      photos: 0,
+      videos: 1,
+      sizeString: "48 MB",
+      lastSync: "Vừa xong",
     },
   },
 ];
@@ -253,17 +253,13 @@ export class BackupSyncService {
 
         // Update all connected/idle devices
         const updatedDevices = devices.map((dev) => {
-          // Compute realistic combined storage
-          const basePhotos = dev.type === "ios" ? 2400 : 800;
-          const baseVideos = dev.type === "ios" ? 170 : 40;
-
           return {
             ...dev,
             status: "connected" as const,
             syncedStats: {
               ...dev.syncedStats,
-              photos: basePhotos + stats.photosCount,
-              videos: baseVideos + stats.videosCount,
+              photos: stats.photosCount,
+              videos: stats.videosCount,
               sizeString: stats.totalSizeString,
               lastSync: "Vừa xong",
             },

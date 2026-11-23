@@ -239,7 +239,9 @@ export function FolderView({
         )}
 
         {/* Google Photos Highlights / Memories Carousel on Root View */}
-        {currentFolderId === null && !isTrash && !title && <MemoriesCarousel />}
+        {currentFolderId === null && !isTrash && !title && sortedNodes.some((n) => n.kind === "image") && (
+          <MemoriesCarousel />
+        )}
 
         {/* Content Body */}
         {isLoading ? (
