@@ -27,6 +27,7 @@ import { formatBytes, formatRelativeDate } from "@/lib/utils/formatters";
 import { FILE_KIND_CONFIGS } from "@/lib/utils/file-types";
 import { vi } from "@/lib/i18n/vi";
 import { toast } from "sonner";
+import QRCode from "qrcode";
 
 type SettingsTab = "profile" | "appearance" | "security" | "storage" | "apps";
 
@@ -88,6 +89,15 @@ export default function SettingsPage() {
   // Security State
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [show2FASetup, setShow2FASetup] = useState(false);
+  const [twoFaQrUrl, setTwoFaQrUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!show2FASetup) return;
+    const otpUri = `otpauth://totp/CloudBox:${encodeURIComponent(email || "user@cloudbox.com")}?secret=JBSWY3DPEHPK3PXP&issuer=CloudBox`;
+    QRCode.toDataURL(otpUri, { width: 160, margin: 1 })
+      .then(setTwoFaQrUrl)
+      .catch(() => {});
+  }, [show2FASetup, email]);
 
   // Storage data
   const used = storage?.usedBytes || 18400000;
@@ -478,8 +488,13 @@ export default function SettingsPage() {
             {show2FASetup && (
               <div className="p-4 rounded-btn bg-surface-2 border border-border space-y-3 mt-3 animate-in fade-in">
                 <div className="flex items-start gap-4">
-                  <div className="h-20 w-20 rounded bg-white p-2 border flex items-center justify-center">
-                    <QrCode className="h-16 w-16 text-black" />
+                  <div className="h-20 w-20 rounded bg-white p-2 border flex items-center justify-center shadow-xs">
+                    {twoFaQrUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={twoFaQrUrl} alt="2FA QR Code" className="h-16 w-16 object-contain" />
+                    ) : (
+                      <QrCode className="h-16 w-16 text-black" />
+                    )}
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-foreground">

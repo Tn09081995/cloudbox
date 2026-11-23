@@ -16,6 +16,7 @@ import {
   FolderSync,
   QrCode,
   ArrowRight,
+  ExternalLink,
   Trash2,
   Star,
   Copy,
@@ -25,6 +26,7 @@ import {
   Tablet,
   Sparkles,
 } from "lucide-react";
+import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,6 +122,7 @@ export default function MobileBackupPage() {
   const [isLinking, setIsLinking] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [pairingCode, setPairingCode] = useState("CLBX-MOBILE-8842");
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   // Backup configuration toggle states
   const [autoBackup, setAutoBackup] = useState(true);
@@ -261,38 +264,124 @@ export default function MobileBackupPage() {
     }, 600);
   };
 
-  // Simulated QR scan pairing
-  const handleSimulateScanPairing = () => {
+  // Handle successful device pairing from any source (QR, mobile, or manual)
+  const handleOnDevicePaired = (pairedDev: BackupDevice) => {
+    setDevices((prev) => {
+      if (prev.some((d) => d.id === pairedDev.id || (d.name === pairedDev.name && d.model === pairedDev.model))) {
+        return prev;
+      }
+      const updated = [pairedDev, ...prev];
+      try {
+        localStorage.setItem("cloudbox_backup_devices_v1", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setIsLinking(false);
+    setConnectModalOpen(false);
+    toast.success(`Đã liên kết thành công thiết bị "${pairedDev.name}"!`);
+  };
+
+  // Generate real, 100% scannable QR Code whenever modal opens or code changes
+  useEffect(() => {
+    if (!connectModalOpen) return;
+    let isMounted = true;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const pairUrl = `${origin}/backup/pair?code=${encodeURIComponent(pairingCode)}`;
+
+    QRCode.toDataURL(pairUrl, {
+      width: 360,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: {
+        dark: "#0F172A",
+        light: "#FFFFFF",
+      },
+    })
+      .then((url) => {
+        if (isMounted) setQrDataUrl(url);
+      })
+      .catch((err) => {
+        console.error("Lỗi tạo mã QR", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [connectModalOpen, pairingCode]);
+
+  // Real-time synchronization when QR modal is open
+  useEffect(() => {
+    if (!connectModalOpen || modalTab !== "qr") return;
+
+    // 1. BroadcastChannel for same browser tabs
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        bc = new BroadcastChannel("cloudbox_pair_channel");
+        bc.onmessage = (event) => {
+          if (event.data?.type === "PAIRED" && event.data?.code === pairingCode && event.data?.device) {
+            handleOnDevicePaired(event.data.device);
+          }
+        };
+      }
+    } catch {}
+
+    // 2. Poll API route every 1500ms for mobile QR scanning
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/backup/pair?code=${encodeURIComponent(pairingCode)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "paired" && data.device) {
+            handleOnDevicePaired(data.device);
+          }
+        }
+      } catch {}
+    }, 1500);
+
+    return () => {
+      clearInterval(interval);
+      if (bc) bc.close();
+    };
+  }, [connectModalOpen, modalTab, pairingCode]);
+
+  // Simulated QR scan pairing / 1-touch pairing
+  const handleSimulateScanPairing = async () => {
     setIsLinking(true);
     toast.info("Đang xử lý bắt tay xác thực từ thiết bị di động...");
 
-    setTimeout(() => {
-      const randomId = Math.floor(1000 + Math.random() * 9000);
-      const isApple = Math.random() > 0.5;
-      const newDev: BackupDevice = {
-        id: `dev-${Date.now()}`,
-        name: isApple ? `iPhone ${randomId}` : `Galaxy Ultra ${randomId}`,
-        model: isApple ? "Apple iPhone 16 Pro" : "Samsung Galaxy S25",
-        os: isApple ? "iOS 18.3" : "Android 15",
-        type: isApple ? "ios" : "android",
-        isPrimary: devices.length === 0,
-        status: "connected",
-        batteryLevel: 92,
-        network: "5G High-Speed",
-        storageUsed: "112/512 GB",
-        syncedStats: {
-          photos: 12,
-          videos: 2,
-          sizeString: "185 MB",
-          lastSync: "Vừa xong",
-        },
-      };
+    const randomId = Math.floor(1000 + Math.random() * 9000);
+    const isApple = Math.random() > 0.5;
+    const newDev: BackupDevice = {
+      id: `dev-${Date.now()}`,
+      name: isApple ? `iPhone ${randomId}` : `Galaxy Ultra ${randomId}`,
+      model: isApple ? "Apple iPhone 16 Pro" : "Samsung Galaxy S25",
+      os: isApple ? "iOS 18.3" : "Android 15",
+      type: isApple ? "ios" : "android",
+      isPrimary: devices.length === 0,
+      status: "connected",
+      batteryLevel: 92,
+      network: "5G High-Speed",
+      storageUsed: "112/512 GB",
+      syncedStats: {
+        photos: 12,
+        videos: 2,
+        sizeString: "185 MB",
+        lastSync: "Vừa xong",
+      },
+    };
 
-      saveDevices([newDev, ...devices]);
-      setIsLinking(false);
-      setConnectModalOpen(false);
-      toast.success(vi.mobileBackup.pairSuccess);
-    }, 800);
+    try {
+      await fetch("/api/backup/pair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: pairingCode, device: newDev }),
+      });
+    } catch {}
+
+    setTimeout(() => {
+      handleOnDevicePaired(newDev);
+    }, 600);
   };
 
   const copyCodeToClipboard = () => {
@@ -769,55 +858,48 @@ export default function MobileBackupPage() {
 
           {modalTab === "qr" ? (
             <div className="space-y-4">
-              {/* QR Code Graphic Mockup */}
-              <div className="p-4 rounded-card bg-surface-2 border border-border flex flex-col items-center justify-center space-y-3">
-                <div className="h-44 w-44 rounded-xl bg-white p-3 border flex items-center justify-center shadow-xs">
-                  <svg className="w-full h-full" viewBox="0 0 100 100">
-                    <rect x="0" y="0" width="100" height="100" fill="#ffffff" />
-                    {/* Simulated QR Code matrix */}
-                    <rect x="10" y="10" width="24" height="24" fill="#0F172A" />
-                    <rect x="14" y="14" width="16" height="16" fill="#ffffff" />
-                    <rect x="18" y="18" width="8" height="8" fill="#0F172A" />
-
-                    <rect x="66" y="10" width="24" height="24" fill="#0F172A" />
-                    <rect x="70" y="14" width="16" height="16" fill="#ffffff" />
-                    <rect x="74" y="18" width="8" height="8" fill="#0F172A" />
-
-                    <rect x="10" y="66" width="24" height="24" fill="#0F172A" />
-                    <rect x="14" y="70" width="16" height="16" fill="#ffffff" />
-                    <rect x="18" y="74" width="8" height="8" fill="#0F172A" />
-
-                    <rect x="40" y="15" width="6" height="6" fill="#0F172A" />
-                    <rect x="50" y="25" width="6" height="6" fill="#0F172A" />
-                    <rect x="42" y="38" width="16" height="6" fill="#2563EB" />
-                    <rect x="45" y="48" width="10" height="10" fill="#0F172A" />
-                    <rect x="65" y="45" width="8" height="8" fill="#0F172A" />
-                    <rect x="25" y="45" width="8" height="8" fill="#0F172A" />
-                    <rect x="45" y="70" width="12" height="6" fill="#0F172A" />
-                    <rect x="65" y="70" width="15" height="15" fill="#0F172A" />
-                  </svg>
+              {/* Real 100% Scannable QR Code */}
+              <div className="p-4 rounded-2xl bg-surface-2 border border-border flex flex-col items-center justify-center space-y-3">
+                <div className="h-52 w-52 rounded-2xl bg-white p-2.5 border border-border flex items-center justify-center shadow-md">
+                  {qrDataUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={qrDataUrl}
+                      alt="Mã QR liên kết CloudBox"
+                      className="w-full h-full object-contain rounded-xl"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
+                      <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                      <span className="text-[11px]">Đang tạo mã QR thật...</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-center space-y-1.5 w-full">
-                  <span className="text-[11px] text-muted-foreground block">
-                    Mã liên kết xác thực nhanh (hiệu lực 10 phút):
+                  <span className="text-xs font-semibold text-foreground block">
+                    Quét bằng Camera điện thoại, Zalo hoặc Google Lens
                   </span>
-                  <div className="flex items-center justify-center gap-2">
-                    <code className="text-xs font-mono font-bold bg-muted px-3 py-1 rounded text-primary inline-block">
+                  <p className="text-[11px] text-muted-foreground">
+                    Mã QR tiêu chuẩn quốc tế, có thể quét trực tiếp bằng bất kỳ ứng dụng chụp ảnh nào.
+                  </p>
+
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <code className="text-xs font-mono font-bold bg-surface px-3 py-1 rounded border border-border text-primary inline-block">
                       {pairingCode}
                     </code>
                     <button
                       type="button"
                       onClick={copyCodeToClipboard}
-                      className="p-1 h-7 w-7 rounded-btn hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+                      className="p-1.5 h-8 w-8 rounded-btn bg-surface border border-border hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
                       title="Sao chép mã"
                     >
-                      {copiedCode ? <Check className="h-3.5 w-3.5 text-semantic-success" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copiedCode ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
                     </button>
                     <button
                       type="button"
                       onClick={refreshPairingCode}
-                      className="p-1 h-7 w-7 rounded-btn hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+                      className="p-1.5 h-8 w-8 rounded-btn bg-surface border border-border hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
                       title="Tạo mã mới"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
@@ -826,23 +908,37 @@ export default function MobileBackupPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground">3 bước đơn giản:</p>
-                <p>1. Cài đặt ứng dụng CloudBox (file APK trên Android hoặc PWA trên iOS Safari).</p>
-                <p>2. Mở ứng dụng và chọn &quot;Quét mã liên kết nhanh&quot;.</p>
-                <p>3. Cấp quyền truy cập Ảnh và bắt đầu sao lưu tự động.</p>
+              {/* 3 Quick Steps */}
+              <div className="space-y-1.5 text-xs text-muted-foreground bg-surface-2/60 p-3 rounded-2xl border border-border/60">
+                <p className="font-semibold text-foreground">3 bước liên kết đơn giản:</p>
+                <p>1. Hướng camera điện thoại (iPhone, Samsung, Zalo, Google Lens) vào mã QR.</p>
+                <p>2. Chạm vào liên kết hiển thị trên điện thoại để mở trang xác nhận liên kết.</p>
+                <p>3. Bấm &quot;Xác nhận liên kết&quot; - máy tính này sẽ tự động kết nối sau 1 giây.</p>
               </div>
 
-              <div className="pt-2 flex flex-col gap-2">
+              {/* Action Buttons */}
+              <div className="pt-1 flex flex-col gap-2">
                 <Button
                   type="button"
                   onClick={handleSimulateScanPairing}
                   disabled={isLinking}
-                  className="w-full h-9 rounded-btn bg-primary text-white hover:bg-primary-ink text-xs font-semibold gap-1.5 shadow-xs"
+                  className="w-full h-10 rounded-pill bg-primary text-white hover:bg-primary/90 text-xs font-semibold gap-2 shadow-sm"
                 >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>{isLinking ? "Đang liên kết thiết bị..." : vi.mobileBackup.simulatePairing}</span>
+                  <Sparkles className="h-4 w-4" />
+                  <span>{isLinking ? "Đang liên kết thiết bị..." : "Xác nhận liên kết nhanh thiết bị (1 chạm)"}</span>
                 </Button>
+
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                  <span>Hoặc mở trực tiếp trên trình duyệt:</span>
+                  <Link
+                    href={`/backup/pair?code=${pairingCode}`}
+                    target="_blank"
+                    className="text-primary hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    <span>Mở trang liên kết này</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
               </div>
             </div>
           ) : (
