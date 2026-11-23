@@ -25,6 +25,8 @@ import {
   Laptop,
   Tablet,
   Sparkles,
+  Edit2,
+  Pencil,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
@@ -70,16 +72,16 @@ export interface BackupDevice {
 
 const DEFAULT_DEVICES: BackupDevice[] = [
   {
-    id: "dev-iphone-15",
-    name: "Minh Anh's iPhone",
-    model: "iPhone 15 Pro Max",
+    id: "dev-iphone-16",
+    name: "iPhone cá nhân",
+    model: "iPhone 16 Pro Max",
     os: "iOS 18.2",
     type: "ios",
     isPrimary: true,
     status: "connected",
-    batteryLevel: 88,
-    network: "FPT-5G",
-    storageUsed: "148/256 GB",
+    batteryLevel: 92,
+    network: "Wi-Fi 5G",
+    storageUsed: "128/256 GB",
     syncedStats: {
       photos: 2450,
       videos: 182,
@@ -89,15 +91,15 @@ const DEFAULT_DEVICES: BackupDevice[] = [
   },
   {
     id: "dev-samsung-s24",
-    name: "Galaxy S24 Cá nhân",
+    name: "Samsung Galaxy",
     model: "Samsung Galaxy S24 Ultra",
-    os: "Android 15 (One UI 7.0)",
+    os: "Android 14 (One UI 6.1)",
     type: "android",
     isPrimary: false,
     status: "idle",
-    batteryLevel: 94,
-    network: "Wi-Fi Nhà riêng",
-    storageUsed: "92/512 GB",
+    batteryLevel: 88,
+    network: "Wi-Fi Văn phòng",
+    storageUsed: "142/512 GB",
     syncedStats: {
       photos: 820,
       videos: 45,
@@ -115,6 +117,19 @@ export default function MobileBackupPage() {
   const [modalTab, setModalTab] = useState<"qr" | "scanner" | "manual">("qr");
   const [lanIp, setLanIp] = useState<string>("");
   const [qrTargetUrl, setQrTargetUrl] = useState<string>("");
+
+  // Editing device modal state
+  const [editingDevice, setEditingDevice] = useState<BackupDevice | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editModel, setEditModel] = useState("");
+  const [editOs, setEditOs] = useState("");
+  const [editType, setEditType] = useState<"ios" | "android" | "tablet" | "desktop">("ios");
+  const [editStorageUsed, setEditStorageUsed] = useState("");
+  const [editBatteryLevel, setEditBatteryLevel] = useState(90);
+  const [editNetwork, setEditNetwork] = useState("");
+
+  // Quick preset model for 1-touch pairing
+  const [quickModelPreset, setQuickModelPreset] = useState("iPhone 16 Pro Max");
 
   // New device form state
   const [newDeviceName, setNewDeviceName] = useState("");
@@ -369,28 +384,90 @@ export default function MobileBackupPage() {
     };
   }, [connectModalOpen, modalTab, pairingCode]);
 
-  // Simulated QR scan pairing / 1-touch pairing
+  // Open edit device info dialog
+  const handleOpenEdit = (device: BackupDevice) => {
+    setEditingDevice(device);
+    setEditName(device.name);
+    setEditModel(device.model);
+    setEditOs(device.os);
+    setEditType(device.type);
+    setEditStorageUsed(device.storageUsed);
+    setEditBatteryLevel(device.batteryLevel);
+    setEditNetwork(device.network);
+  };
+
+  // Save edited device info
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDevice) return;
+
+    const updated = devices.map((d) => {
+      if (d.id === editingDevice.id) {
+        return {
+          ...d,
+          name: editName.trim() || d.name,
+          model: editModel.trim() || d.model,
+          os: editOs.trim() || d.os,
+          type: editType,
+          storageUsed: editStorageUsed.trim() || d.storageUsed,
+          batteryLevel: editBatteryLevel,
+          network: editNetwork.trim() || d.network,
+        };
+      }
+      return d;
+    });
+
+    saveDevices(updated);
+    setEditingDevice(null);
+    toast.success(`Đã cập nhật chính xác thông tin thiết bị "${editName}"!`);
+  };
+
+  // Simulated QR scan pairing / 1-touch pairing with EXACT chosen model
   const handleSimulateScanPairing = async () => {
     setIsLinking(true);
-    toast.info("Đang xử lý bắt tay xác thực từ thiết bị di động...");
+    toast.info(`Đang xác thực liên kết thiết bị ${quickModelPreset}...`);
 
-    const randomId = Math.floor(1000 + Math.random() * 9000);
-    const isApple = Math.random() > 0.5;
+    let type: "ios" | "android" | "tablet" = "ios";
+    let os = "iOS 18.2";
+    let storage = "128/256 GB";
+
+    if (quickModelPreset.includes("iPhone")) {
+      type = "ios";
+      os = "iOS 18.2";
+      storage = "128/256 GB";
+    } else if (quickModelPreset.includes("iPad")) {
+      type = "tablet";
+      os = "iPadOS 18.1";
+      storage = "256/512 GB";
+    } else if (quickModelPreset.includes("Samsung")) {
+      type = "android";
+      os = "Android 14 (One UI 6.1)";
+      storage = "142/512 GB";
+    } else if (quickModelPreset.includes("Xiaomi")) {
+      type = "android";
+      os = "Xiaomi HyperOS (Android 14)";
+      storage = "86/256 GB";
+    } else {
+      type = "android";
+      os = "Android 14";
+      storage = "64/128 GB";
+    }
+
     const newDev: BackupDevice = {
       id: `dev-${Date.now()}`,
-      name: isApple ? `iPhone ${randomId}` : `Galaxy Ultra ${randomId}`,
-      model: isApple ? "Apple iPhone 16 Pro" : "Samsung Galaxy S25",
-      os: isApple ? "iOS 18.3" : "Android 15",
-      type: isApple ? "ios" : "android",
+      name: `${quickModelPreset} của tôi`,
+      model: quickModelPreset,
+      os,
+      type,
       isPrimary: devices.length === 0,
       status: "connected",
       batteryLevel: 92,
-      network: "5G High-Speed",
-      storageUsed: "112/512 GB",
+      network: "Wi-Fi 5G",
+      storageUsed: storage,
       syncedStats: {
-        photos: 12,
-        videos: 2,
-        sizeString: "185 MB",
+        photos: 24,
+        videos: 3,
+        sizeString: "320 MB",
         lastSync: "Vừa xong",
       },
     };
@@ -574,6 +651,14 @@ export default function MobileBackupPage() {
                           >
                             <RefreshCw className={`h-3.5 w-3.5 ${isDeviceSyncing ? "animate-spin" : ""}`} />
                             <span>Đồng bộ ngay</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={() => handleOpenEdit(device)}
+                            className="flex items-center gap-2 text-xs px-2.5 py-2 rounded-btn cursor-pointer font-medium"
+                          >
+                            <Edit2 className="h-3.5 w-3.5 text-primary" />
+                            <span>Chỉnh sửa thông tin</span>
                           </DropdownMenuItem>
 
                           {!device.isPrimary && (
@@ -955,6 +1040,34 @@ export default function MobileBackupPage() {
 
               {/* Action Buttons */}
               <div className="pt-1 flex flex-col gap-2">
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground block">
+                    Chọn đúng mẫu điện thoại của bạn để liên kết:
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      "iPhone 16 Pro Max",
+                      "iPhone 15 Pro",
+                      "Samsung Galaxy S24 Ultra",
+                      "Xiaomi 14 Ultra",
+                      "Google Pixel 8 Pro",
+                    ].map((model) => (
+                      <button
+                        key={model}
+                        type="button"
+                        onClick={() => setQuickModelPreset(model)}
+                        className={`text-[10px] px-2.5 py-1 rounded-full border transition-colors ${
+                          quickModelPreset === model
+                            ? "bg-primary text-white border-primary font-bold shadow-xs"
+                            : "bg-surface text-foreground border-border hover:border-primary/50"
+                        }`}
+                      >
+                        {model}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <Button
                   type="button"
                   onClick={handleSimulateScanPairing}
@@ -962,7 +1075,7 @@ export default function MobileBackupPage() {
                   className="w-full h-10 rounded-pill bg-primary text-white hover:bg-primary/90 text-xs font-semibold gap-2 shadow-sm"
                 >
                   <Sparkles className="h-4 w-4" />
-                  <span>{isLinking ? "Đang liên kết thiết bị..." : "Xác nhận liên kết nhanh thiết bị (1 chạm)"}</span>
+                  <span>{isLinking ? "Đang liên kết thiết bị..." : `Xác nhận liên kết ${quickModelPreset} (1 chạm)`}</span>
                 </Button>
 
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
@@ -1109,6 +1222,147 @@ export default function MobileBackupPage() {
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Device Info Dialog */}
+      <Dialog open={!!editingDevice} onOpenChange={(open) => !open && setEditingDevice(null)}>
+        <DialogContent className="max-w-md rounded-3xl bg-surface border-border p-6 shadow-2xl font-sans">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              <span>Chỉnh sửa thông tin thiết bị</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Tùy chỉnh lại tên gọi, mẫu máy, hệ điều hành và dung lượng hiển thị cho đúng với thiết bị của bạn.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveEdit} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-name" className="text-xs font-semibold text-foreground">
+                Tên thiết bị (Gợi nhớ):
+              </Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="VD: iPhone của Tuấn, Galaxy S24..."
+                className="h-10 rounded-pill text-xs bg-surface-2 border-border"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-model" className="text-xs font-semibold text-foreground">
+                  Mẫu máy (Model):
+                </Label>
+                <Input
+                  id="edit-model"
+                  value={editModel}
+                  onChange={(e) => setEditModel(e.target.value)}
+                  placeholder="iPhone 16 Pro Max, Pixel 8..."
+                  className="h-10 rounded-pill text-xs bg-surface-2 border-border"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-os" className="text-xs font-semibold text-foreground">
+                  Hệ điều hành (OS):
+                </Label>
+                <Input
+                  id="edit-os"
+                  value={editOs}
+                  onChange={(e) => setEditOs(e.target.value)}
+                  placeholder="iOS 18.2, Android 15..."
+                  className="h-10 rounded-pill text-xs bg-surface-2 border-border"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-type" className="text-xs font-semibold text-foreground">
+                  Loại thiết bị:
+                </Label>
+                <select
+                  id="edit-type"
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value as "ios" | "android" | "tablet" | "desktop")}
+                  className="w-full h-10 px-3 rounded-pill text-xs bg-surface-2 border border-border text-foreground outline-none"
+                >
+                  <option value="ios">iPhone (Apple iOS)</option>
+                  <option value="android">Điện thoại Android</option>
+                  <option value="tablet">Máy tính bảng (iPad / Tablet)</option>
+                  <option value="desktop">Máy tính để bàn / Laptop</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-storage" className="text-xs font-semibold text-foreground">
+                  Dung lượng hiển thị:
+                </Label>
+                <Input
+                  id="edit-storage"
+                  value={editStorageUsed}
+                  onChange={(e) => setEditStorageUsed(e.target.value)}
+                  placeholder="128/256 GB, 64/128 GB..."
+                  className="h-10 rounded-pill text-xs bg-surface-2 border-border font-mono"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-battery" className="text-xs font-semibold text-foreground">
+                  Mức pin (%):
+                </Label>
+                <Input
+                  id="edit-battery"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={editBatteryLevel}
+                  onChange={(e) => setEditBatteryLevel(Number(e.target.value) || 90)}
+                  className="h-10 rounded-pill text-xs bg-surface-2 border-border font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-network" className="text-xs font-semibold text-foreground">
+                  Tên mạng kết nối:
+                </Label>
+                <Input
+                  id="edit-network"
+                  value={editNetwork}
+                  onChange={(e) => setEditNetwork(e.target.value)}
+                  placeholder="Wi-Fi 5G, 4G LTE..."
+                  className="h-10 rounded-pill text-xs bg-surface-2 border-border"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-3 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingDevice(null)}
+                className="rounded-btn text-xs h-9 px-4"
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                className="rounded-btn bg-primary text-white hover:bg-primary-ink text-xs font-semibold h-9 px-5 shadow-xs"
+              >
+                Lưu thay đổi
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

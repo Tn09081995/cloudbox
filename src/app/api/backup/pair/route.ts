@@ -52,7 +52,6 @@ export async function GET(req: NextRequest) {
 
   const session = pairSessions.get(code);
   if (!session) {
-    // If not found yet, create a pending session so mobile client can pair against it
     pairSessions.set(code, {
       code,
       createdAt: Date.now(),
@@ -83,10 +82,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu mã liên kết (code)" }, { status: 400 });
     }
 
-    const deviceName = device?.name?.trim() || "Điện thoại di động";
+    const deviceName = device?.name?.trim() || "Điện thoại của tôi";
     const deviceModel = device?.model?.trim() || "Smartphone";
     const deviceOs = device?.os?.trim() || "Mobile OS";
     const deviceType = (device?.type as "ios" | "android" | "tablet" | "desktop") || "android";
+    const batteryLevel = typeof device?.batteryLevel === "number" ? device.batteryLevel : 92;
+    const network = device?.network?.trim() || "Wi-Fi (Đã kết nối)";
+    const storageUsed = device?.storageUsed?.trim() || "64/256 GB";
 
     const newDevice: PairedDeviceData = {
       id: `dev-${Date.now()}`,
@@ -96,13 +98,13 @@ export async function POST(req: NextRequest) {
       type: deviceType,
       isPrimary: false,
       status: "connected",
-      batteryLevel: Math.floor(Math.random() * 20) + 78,
-      network: "Wi-Fi (Đã kết nối)",
-      storageUsed: "64/256 GB",
+      batteryLevel,
+      network,
+      storageUsed,
       syncedStats: {
-        photos: Math.floor(Math.random() * 15) + 5,
-        videos: Math.floor(Math.random() * 3) + 1,
-        sizeString: `${Math.floor(Math.random() * 200) + 80} MB`,
+        photos: 18,
+        videos: 2,
+        sizeString: "245 MB",
         lastSync: "Vừa xong",
       },
     };
