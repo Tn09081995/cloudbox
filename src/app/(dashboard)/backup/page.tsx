@@ -112,7 +112,9 @@ export default function MobileBackupPage() {
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [syncingDeviceId, setSyncingDeviceId] = useState<string | null>(null);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<"qr" | "manual">("qr");
+  const [modalTab, setModalTab] = useState<"qr" | "scanner" | "manual">("qr");
+  const [lanIp, setLanIp] = useState<string>("");
+  const [qrTargetUrl, setQrTargetUrl] = useState<string>("");
 
   // New device form state
   const [newDeviceName, setNewDeviceName] = useState("");
@@ -285,24 +287,46 @@ export default function MobileBackupPage() {
   useEffect(() => {
     if (!connectModalOpen) return;
     let isMounted = true;
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const pairUrl = `${origin}/backup/pair?code=${encodeURIComponent(pairingCode)}`;
 
-    QRCode.toDataURL(pairUrl, {
-      width: 360,
-      margin: 2,
-      errorCorrectionLevel: "M",
-      color: {
-        dark: "#0F172A",
-        light: "#FFFFFF",
-      },
-    })
-      .then((url) => {
-        if (isMounted) setQrDataUrl(url);
+    async function generateCode() {
+      let host = typeof window !== "undefined" ? window.location.origin : "";
+      if (
+        typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+      ) {
+        try {
+          const res = await fetch("/api/network-ip");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.lanIp && data.lanIp !== "localhost") {
+              setLanIp(data.lanIp);
+              host = `http://${data.lanIp}:${window.location.port || 3000}`;
+            }
+          }
+        } catch {}
+      }
+
+      const pairUrl = `${host}/backup/pair?code=${encodeURIComponent(pairingCode)}`;
+      if (isMounted) setQrTargetUrl(pairUrl);
+
+      QRCode.toDataURL(pairUrl, {
+        width: 360,
+        margin: 2,
+        errorCorrectionLevel: "M",
+        color: {
+          dark: "#0F172A",
+          light: "#FFFFFF",
+        },
       })
-      .catch((err) => {
-        console.error("Lỗi tạo mã QR", err);
-      });
+        .then((url) => {
+          if (isMounted) setQrDataUrl(url);
+        })
+        .catch((err) => {
+          console.error("Lỗi tạo mã QR", err);
+        });
+    }
+
+    generateCode();
 
     return () => {
       isMounted = false;
@@ -830,8 +854,8 @@ export default function MobileBackupPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Segmented Mode Selector */}
-          <div className="grid grid-cols-2 p-1 rounded-btn bg-surface-2 border border-border my-2">
+          {/* Segmented Mode Selector (3 Tabs) */}
+          <div className="grid grid-cols-3 p-1 rounded-btn bg-surface-2 border border-border my-2">
             <button
               type="button"
               onClick={() => setModalTab("qr")}
@@ -841,7 +865,18 @@ export default function MobileBackupPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {vi.mobileBackup.qrPairTab}
+              Mã QR điện thoại
+            </button>
+            <button
+              type="button"
+              onClick={() => setModalTab("scanner")}
+              className={`py-1.5 text-xs font-semibold rounded-btn transition-colors ${
+                modalTab === "scanner"
+                  ? "bg-surface text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Camera quét mã
             </button>
             <button
               type="button"
@@ -852,7 +887,7 @@ export default function MobileBackupPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {vi.mobileBackup.manualPairTab}
+              Nhập thủ công
             </button>
           </div>
 
@@ -881,7 +916,9 @@ export default function MobileBackupPage() {
                     Quét bằng Camera điện thoại, Zalo hoặc Google Lens
                   </span>
                   <p className="text-[11px] text-muted-foreground">
-                    Mã QR tiêu chuẩn quốc tế, có thể quét trực tiếp bằng bất kỳ ứng dụng chụp ảnh nào.
+                    {lanIp
+                      ? `Điện thoại cùng Wi-Fi sẽ kết nối qua: ${qrTargetUrl}`
+                      : "Mã QR tiêu chuẩn quốc tế, có thể quét trực tiếp bằng bất kỳ ứng dụng chụp ảnh nào."}
                   </p>
 
                   <div className="flex items-center justify-center gap-2 pt-1">
@@ -929,7 +966,7 @@ export default function MobileBackupPage() {
                 </Button>
 
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-                  <span>Hoặc mở trực tiếp trên trình duyệt:</span>
+                  <span>Mở trực tiếp trên trình duyệt:</span>
                   <Link
                     href={`/backup/pair?code=${pairingCode}`}
                     target="_blank"
@@ -940,6 +977,47 @@ export default function MobileBackupPage() {
                   </Link>
                 </div>
               </div>
+            </div>
+          ) : modalTab === "scanner" ? (
+            <div className="space-y-4">
+              {/* Camera Scanner Viewfinder Graphic */}
+              <div className="relative h-60 w-full rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center justify-center overflow-hidden">
+                {/* Viewfinder brackets */}
+                <div className="relative w-44 h-44 border-2 border-dashed border-emerald-500/60 rounded-xl flex items-center justify-center">
+                  {/* Corner accents */}
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-emerald-400" />
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-400" />
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-400" />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-400" />
+
+                  {/* Animated laser scan line */}
+                  <div className="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-bounce shadow-[0_0_8px_#34d399]" />
+
+                  <Camera className="h-10 w-10 text-emerald-400/40 animate-pulse" />
+                </div>
+
+                <div className="absolute bottom-3 inset-x-0 text-center px-4">
+                  <span className="text-xs text-slate-300 font-medium bg-black/60 px-3 py-1 rounded-full backdrop-blur-xs">
+                    Đang hướng camera tìm mã QR CloudBox...
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs text-muted-foreground bg-surface-2/60 p-3 rounded-2xl border border-border/60">
+                <p className="font-semibold text-foreground">Cách quét mã:</p>
+                <p>• Hướng camera của máy tính hoặc điện thoại vào mã QR trên màn hình đối diện.</p>
+                <p>• Giữ mã nằm trọn trong khung ngắm màu xanh.</p>
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleSimulateScanPairing}
+                disabled={isLinking}
+                className="w-full h-10 rounded-pill bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold gap-2 shadow-sm"
+              >
+                <Camera className="h-4 w-4" />
+                <span>{isLinking ? "Đang nhận diện..." : "Chụp & Nhận diện mã ngay lập tức"}</span>
+              </Button>
             </div>
           ) : (
             <form onSubmit={handleAddDeviceSubmit} className="space-y-4 pt-1">

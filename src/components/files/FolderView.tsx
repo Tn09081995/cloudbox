@@ -57,11 +57,39 @@ export function FolderView({
 }: FolderViewProps) {
   const {
     viewMode,
+    sortField,
+    sortOrder,
     selectedIds,
     clearSelection,
     setDetailsPanelOpen,
     setNewFolderOpen,
   } = useUiStore();
+
+  const sortedNodes = React.useMemo(() => {
+    return [...nodes].sort((a, b) => {
+      // Folders always first
+      if (a.kind === "folder" && b.kind !== "folder") return -1;
+      if (a.kind !== "folder" && b.kind === "folder") return 1;
+
+      if (sortField === "name") {
+        return sortOrder === "asc"
+          ? a.name.localeCompare(b.name, "vi")
+          : b.name.localeCompare(a.name, "vi");
+      }
+
+      if (sortField === "size") {
+        return sortOrder === "asc" ? a.size - b.size : b.size - a.size;
+      }
+
+      if (sortField === "updated_at") {
+        const dateA = new Date(a.updated_at || a.created_at).getTime();
+        const dateB = new Date(b.updated_at || b.created_at).getTime();
+        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+      }
+
+      return 0;
+    });
+  }, [nodes, sortField, sortOrder]);
 
   const { trash, restore, toggleStar } = useFileMutations();
   const queryClient = useQueryClient();
@@ -237,7 +265,7 @@ export function FolderView({
             <div className="min-h-[450px]">
               {viewMode === "grid" ? (
                 <FileGrid
-                  nodes={nodes}
+                  nodes={sortedNodes}
                   isTrash={isTrash}
                   onPreview={(file) => !isTrash && setPreviewNode(file)}
                   onShare={(file) => setShareNode(file)}
@@ -251,7 +279,7 @@ export function FolderView({
                 />
               ) : (
                 <FileList
-                  nodes={nodes}
+                  nodes={sortedNodes}
                   isTrash={isTrash}
                   onPreview={(file) => !isTrash && setPreviewNode(file)}
                   onShare={(file) => setShareNode(file)}

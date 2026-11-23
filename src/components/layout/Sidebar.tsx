@@ -40,6 +40,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 export function Sidebar({ className = "" }: { className?: string }) {
   const pathname = usePathname();
+  const [isHovered, setIsHovered] = useState(false);
   const {
     sidebarCollapsed,
     mobileMenuOpen,
@@ -47,6 +48,8 @@ export function Sidebar({ className = "" }: { className?: string }) {
     setNewFolderOpen,
     setNewTextFileOpen,
   } = useUiStore();
+
+  const isExpanded = !sidebarCollapsed || isHovered;
 
   const { data: storage } = useStorageUsage();
   const [buyStorageOpen, setBuyStorageOpen] = useState(false);
@@ -107,8 +110,10 @@ export function Sidebar({ className = "" }: { className?: string }) {
       {/* DESKTOP / TABLET SIDEBAR */}
       {/* ======================================================== */}
       <aside
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         className={`hidden md:flex flex-col flex-shrink-0 transition-all duration-300 ease-out bg-background select-none ${
-          sidebarCollapsed ? "w-[72px]" : "w-[240px] xl:w-[260px]"
+          isExpanded ? "w-[240px] xl:w-[260px] shadow-sm" : "w-[72px]"
         } ${className}`}
       >
         <div className="flex-1 flex flex-col justify-between p-3 overflow-y-auto overflow-x-hidden">
@@ -120,14 +125,14 @@ export function Sidebar({ className = "" }: { className?: string }) {
                   <button
                     type="button"
                     className={`flex items-center gap-3 rounded-full bg-surface hover:bg-surface-2 text-foreground border border-border/60 shadow-md hover:shadow-lg transition-all duration-cb active:scale-95 ${
-                      sidebarCollapsed
+                      !isExpanded
                         ? "h-12 w-12 justify-center mx-auto"
                         : "h-12 px-5 w-full font-medium"
                     }`}
                     title="Tạo mới hoặc tải lên"
                   >
                     <Plus className="h-5 w-5 text-primary stroke-[2.5] flex-shrink-0" />
-                    {!sidebarCollapsed && (
+                    {isExpanded && (
                       <span className="text-sm font-semibold tracking-tight">
                         Mới
                       </span>
@@ -135,8 +140,8 @@ export function Sidebar({ className = "" }: { className?: string }) {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  align={sidebarCollapsed ? "center" : "start"}
-                  side={sidebarCollapsed ? "right" : "bottom"}
+                  align={!isExpanded ? "center" : "start"}
+                  side={!isExpanded ? "right" : "bottom"}
                   className="w-56 p-1.5 rounded-2xl bg-surface border border-border shadow-xl font-sans"
                 >
                   <DropdownMenuItem
@@ -207,19 +212,19 @@ export function Sidebar({ className = "" }: { className?: string }) {
                     key={item.href}
                     href={item.href}
                     className={`flex items-center gap-4 h-10 px-3.5 rounded-full text-xs font-medium transition-colors ${
-                      sidebarCollapsed ? "justify-center px-0 w-10 mx-auto" : "w-full"
+                      !isExpanded ? "justify-center px-0 w-10 mx-auto" : "w-full"
                     } ${
                       item.active
                         ? "bg-nav-active text-nav-active-foreground font-semibold"
-                        : "text-foreground hover:bg-surface-2 text-muted hover:text-foreground"
+                        : "text-foreground hover:bg-surface-2 text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <Icon className={`h-4 w-4 flex-shrink-0 ${item.active ? "text-primary stroke-[2.5]" : ""}`} />
-                    {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                    {isExpanded && <span className="truncate">{item.label}</span>}
                   </Link>
                 );
 
-                if (sidebarCollapsed) {
+                if (!isExpanded) {
                   return (
                     <Tooltip key={item.href}>
                       <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
@@ -239,7 +244,7 @@ export function Sidebar({ className = "" }: { className?: string }) {
           <div className="pt-4 space-y-3">
             <hr className="border-border/60" />
 
-            {sidebarCollapsed ? (
+            {!isExpanded ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -257,7 +262,7 @@ export function Sidebar({ className = "" }: { className?: string }) {
             ) : (
               <div className="px-3 space-y-2">
                 <div className="flex items-center justify-between text-xs font-medium">
-                  <span className="text-muted">Dung lượng</span>
+                  <span className="text-muted-foreground">Dung lượng</span>
                   <span className="text-foreground font-mono text-[11px]">
                     {formatBytes(used)} / {formatBytes(quota)}
                   </span>
@@ -271,7 +276,7 @@ export function Sidebar({ className = "" }: { className?: string }) {
                   />
                 </div>
 
-                <p className="text-[11px] text-muted">
+                <p className="text-[11px] text-muted-foreground">
                   Đã sử dụng {percentage}% bộ nhớ
                 </p>
 

@@ -34,8 +34,9 @@ export default {
           foreground: "var(--nav-active-fg)",
         },
         muted: {
-          DEFAULT: "var(--surface-2)",
+          DEFAULT: "var(--muted)",
           foreground: "var(--muted)",
+          surface: "var(--surface-2)",
         },
         card: {
           DEFAULT: "var(--surface)",

@@ -219,7 +219,7 @@ export function TopBar() {
             <div className="flex-1 max-w-2xl px-2">
               <div
                 onClick={() => setCommandPaletteOpen(true)}
-                className="flex items-center gap-3 h-11 px-4 rounded-full bg-surface-2 hover:bg-surface-variant/80 border border-transparent text-muted hover:text-foreground transition-all duration-cb cursor-pointer shadow-xs"
+                className="flex items-center gap-3 h-11 px-4 rounded-full bg-surface-2 hover:bg-surface-variant/80 border border-border/40 text-muted-foreground hover:text-foreground transition-all duration-cb cursor-pointer shadow-xs"
                 role="searchbox"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -228,8 +228,8 @@ export function TopBar() {
                   }
                 }}
               >
-                <Search className="h-4 w-4 text-muted flex-shrink-0" />
-                <span className="text-xs md:text-sm font-normal text-muted truncate flex-1">
+                <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs md:text-sm font-normal text-muted-foreground truncate flex-1">
                   Tìm trong CloudBox (Ctrl + K)
                 </span>
               </div>
@@ -303,7 +303,7 @@ export function TopBar() {
               <a
                 href="/cloudbox.apk"
                 download="CloudBox.apk"
-                className="hidden lg:inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-surface-2 hover:bg-surface-variant text-foreground text-[11px] font-medium border border-border/50 transition-colors"
+                className="hidden md:inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-surface-2 hover:bg-surface-variant text-foreground text-[11px] font-medium border border-border/50 transition-colors"
                 title="Tải ứng dụng Android APK"
               >
                 <Download className="h-3.5 w-3.5 text-primary" />
@@ -316,7 +316,7 @@ export function TopBar() {
                   <button
                     type="button"
                     onClick={() => setHelpOpen(true)}
-                    className="p-2 h-9 w-9 flex items-center justify-center rounded-full text-muted hover:text-foreground hover:bg-surface-2 transition-colors"
+                    className="p-2 h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
                     aria-label="Trợ giúp"
                   >
                     <HelpCircle className="h-5 w-5" />
@@ -330,7 +330,7 @@ export function TopBar() {
                 <TooltipTrigger asChild>
                   <Link
                     href="/settings"
-                    className="p-2 h-9 w-9 flex items-center justify-center rounded-full text-muted hover:text-foreground hover:bg-surface-2 transition-colors"
+                    className="p-2 h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
                     aria-label="Cài đặt"
                   >
                     <Settings className="h-5 w-5" />
@@ -344,7 +344,7 @@ export function TopBar() {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="p-2 h-9 w-9 flex items-center justify-center rounded-full text-muted hover:text-foreground hover:bg-surface-2 transition-colors relative"
+                    className="p-2 h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors relative"
                     aria-label="Giao diện sáng/tối"
                   >
                     <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
