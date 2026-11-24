@@ -53,7 +53,7 @@ import {
 import { vi } from "@/lib/i18n/vi";
 import { toast } from "sonner";
 import { BackupDevice, BackupSyncLog } from "@/types/backup";
-import { BackupSyncService } from "@/lib/services/backupSyncService";
+import { BackupSyncService, DEFAULT_BACKUP_DEVICES } from "@/lib/services/backupSyncService";
 import { useBackupAutoSync } from "@/lib/hooks/useBackupAutoSync";
 
 export type { BackupDevice };
@@ -67,12 +67,8 @@ export default function MobileBackupPage() {
     setAutoBackupOnWebChange,
   } = useBackupAutoSync();
 
-  const [devices, setDevices] = useState<BackupDevice[]>(() =>
-    BackupSyncService.getDevices()
-  );
-  const [syncHistory, setSyncHistory] = useState<BackupSyncLog[]>(() =>
-    BackupSyncService.getSyncHistory()
-  );
+  const [devices, setDevices] = useState<BackupDevice[]>(DEFAULT_BACKUP_DEVICES);
+  const [syncHistory, setSyncHistory] = useState<BackupSyncLog[]>([]);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [syncingDeviceId, setSyncingDeviceId] = useState<string | null>(null);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
@@ -104,14 +100,18 @@ export default function MobileBackupPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   // Backup configuration toggle states
-  const [autoBackupPhotos, setAutoBackupPhotos] = useState(() => BackupSyncService.getConfig().autoBackupPhotos);
+  const [autoBackupPhotos, setAutoBackupPhotos] = useState(true);
   const [wifiOnly, setWifiOnly] = useState(true);
   const [originalQuality, setOriginalQuality] = useState(true);
   const [appFolders, setAppFolders] = useState(true);
   const [freeUpSpace, setFreeUpSpace] = useState(false);
 
-  // Sync devices and history on live event
+  // Sync devices and history on live event & initial mount
   useEffect(() => {
+    setDevices(BackupSyncService.getDevices());
+    setSyncHistory(BackupSyncService.getSyncHistory());
+    setAutoBackupPhotos(BackupSyncService.getConfig().autoBackupPhotos);
+
     const refreshData = () => {
       setDevices(BackupSyncService.getDevices());
       setSyncHistory(BackupSyncService.getSyncHistory());
