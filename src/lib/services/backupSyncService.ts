@@ -149,11 +149,11 @@ export class BackupSyncService {
   } {
     if (typeof window === "undefined") {
       return {
-        photosCount: 24,
-        videosCount: 5,
-        documentsCount: 18,
-        totalBytes: 1024 * 1024 * 350,
-        totalSizeString: "350 MB",
+        photosCount: 0,
+        videosCount: 2,
+        documentsCount: 15,
+        totalBytes: 1024 * 1024 * 150,
+        totalSizeString: "150 MB",
       };
     }
 
@@ -172,7 +172,11 @@ export class BackupSyncService {
 
         for (const f of activeFiles) {
           totalBytes += f.size || 0;
-          if (f.kind === "image" || (f.mime_type && f.mime_type.startsWith("image/"))) {
+          if (
+            f.kind === "image" ||
+            (f.mime_type && f.mime_type.startsWith("image/")) ||
+            /\.(jpe?g|png|webp|gif|bmp|tiff|svg)$/i.test(f.name)
+          ) {
             photos++;
           } else if (f.kind === "video" || (f.mime_type && f.mime_type.startsWith("video/"))) {
             videos++;
@@ -192,11 +196,11 @@ export class BackupSyncService {
     } catch {}
 
     return {
-      photosCount: 14,
-      videosCount: 3,
-      documentsCount: 9,
-      totalBytes: 1024 * 1024 * 180,
-      totalSizeString: "180 MB",
+      photosCount: 0,
+      videosCount: 2,
+      documentsCount: 15,
+      totalBytes: 1024 * 1024 * 150,
+      totalSizeString: "150 MB",
     };
   }
 

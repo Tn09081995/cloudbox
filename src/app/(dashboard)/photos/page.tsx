@@ -15,6 +15,16 @@ export default function PhotosPage() {
   const { isAutoBackupEnabled, isSyncing, triggerManualSync } = useBackupAutoSync();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const photoCount = nodes.filter(
+    (n) =>
+      n.kind === "image" ||
+      (Boolean(n.mime_type) && n.mime_type!.startsWith("image/")) ||
+      /\.(jpe?g|png|webp|gif|bmp|tiff)$/i.test(n.name)
+  ).length;
+  const videoCount = nodes.filter(
+    (n) => n.kind === "video" || (Boolean(n.mime_type) && n.mime_type!.startsWith("video/"))
+  ).length;
+
   const handleUploadPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -53,7 +63,9 @@ export default function PhotosPage() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Toàn bộ {nodes.length} ảnh và video của bạn được lưu trữ an toàn với chất lượng gốc và tự động đồng bộ sang các thiết bị liên kết.
+              {photoCount === 0
+                ? `Thư viện hiện có 0 ảnh (đã xóa sạch toàn bộ ảnh) và ${videoCount} video được đồng bộ an toàn với thiết bị liên kết.`
+                : `Toàn bộ ${photoCount} ảnh và ${videoCount} video của bạn được lưu trữ an toàn với chất lượng gốc.`}
             </p>
           </div>
         </div>

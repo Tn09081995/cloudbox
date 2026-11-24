@@ -401,9 +401,9 @@ export default function MobileBackupPage() {
       network: "Wi-Fi 5G",
       storageUsed: storage,
       syncedStats: {
-        photos: 24,
-        videos: 3,
-        sizeString: "320 MB",
+        photos: 0,
+        videos: 2,
+        sizeString: "112 MB",
         lastSync: "Vừa xong",
       },
     };

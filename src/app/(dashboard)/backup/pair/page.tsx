@@ -217,9 +217,9 @@ function DevicePairContent() {
           network: payload.device.network,
           storageUsed: payload.device.storageUsed,
           syncedStats: {
-            photos: 18,
+            photos: 0,
             videos: 2,
-            sizeString: "245 MB",
+            sizeString: "112 MB",
             lastSync: "Vừa xong",
           },
         };

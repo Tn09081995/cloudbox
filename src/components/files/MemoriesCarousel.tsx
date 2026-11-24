@@ -3,56 +3,26 @@
 import React, { useRef } from "react";
 import { ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
 import { useUiStore } from "@/lib/hooks/useUiStore";
-
-interface MemoryItem {
-  id: string;
-  title: string;
-  subtitle: string;
-  image: string;
-  fileId?: string;
-}
-
-const MEMORIES: MemoryItem[] = [
-  {
-    id: "mem-1",
-    title: "Điểm sáng tuần qua",
-    subtitle: "18 khoảnh khắc đẹp",
-    image: "https://picsum.photos/seed/danang1/500/350",
-    fileId: "file-photo-1",
-  },
-  {
-    id: "mem-2",
-    title: "Chuyến đi Hội An",
-    subtitle: "1 năm trước",
-    image: "https://picsum.photos/seed/hoian3/500/350",
-    fileId: "file-photo-3",
-  },
-  {
-    id: "mem-3",
-    title: "Bình minh trên đỉnh Bà Nà",
-    subtitle: "Kỷ niệm đáng nhớ",
-    image: "https://picsum.photos/seed/bana5/500/350",
-    fileId: "file-photo-5",
-  },
-  {
-    id: "mem-4",
-    title: "Cuối tuần ấm áp",
-    subtitle: "Ảnh gia đình",
-    image: "https://picsum.photos/seed/family8/500/350",
-    fileId: "file-photo-8",
-  },
-  {
-    id: "mem-5",
-    title: "Mùa hoa Hà Giang",
-    subtitle: "Tháng 10 rực rỡ",
-    image: "https://picsum.photos/seed/hagiang10/500/350",
-    fileId: "file-photo-10",
-  },
-];
+import { usePhotosAndVideos } from "@/lib/hooks/useFiles";
 
 export function MemoriesCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { setPreviewTargetId } = useUiStore();
+  const { data: mediaFiles = [] } = usePhotosAndVideos();
+
+  // Strictly filter only real image/photo files
+  const photoFiles = mediaFiles.filter(
+    (n) =>
+      !n.is_trashed &&
+      (n.kind === "image" ||
+        (n.mime_type && n.mime_type.startsWith("image/")) ||
+        /\.(jpe?g|png|webp|gif|bmp|tiff)$/i.test(n.name))
+  );
+
+  // If there are no images, do NOT render the carousel at all!
+  if (photoFiles.length === 0) {
+    return null;
+  }
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -96,22 +66,28 @@ export function MemoriesCarousel() {
         className="flex items-center gap-3.5 overflow-x-auto scrollbar-none py-1 scroll-smooth"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {MEMORIES.map((item) => (
+        {photoFiles.map((file) => (
           <div
-            key={item.id}
+            key={file.id}
             onClick={() => {
-              if (item.fileId) setPreviewTargetId(item.fileId);
+              setPreviewTargetId(file.id);
             }}
             className="relative flex-shrink-0 w-44 md:w-52 h-28 md:h-32 rounded-[16px] overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]"
           >
-            {/* Background image */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={item.image}
-              alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              loading="lazy"
-            />
+            {/* Background image if available */}
+            {file.thumbnail_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={file.thumbnail_url}
+                alt={file.name}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full bg-surface-2 flex items-center justify-center text-primary font-bold text-xs p-2 text-center">
+                {file.name}
+              </div>
+            )}
 
             {/* Dark bottom gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -119,10 +95,10 @@ export function MemoriesCarousel() {
             {/* Content text */}
             <div className="absolute bottom-0 inset-x-0 p-3 text-white">
               <span className="text-[10px] uppercase font-bold tracking-wider opacity-80 block text-sky-300">
-                {item.subtitle}
+                Ảnh lưu trữ
               </span>
               <p className="text-xs md:text-sm font-semibold truncate leading-tight mt-0.5">
-                {item.title}
+                {file.name}
               </p>
             </div>
           </div>

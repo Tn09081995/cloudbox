@@ -32,6 +32,7 @@ function getCurrentUserOwner(): NodeOwner {
 export const isSampleMockFile = (n: FileNode): boolean => {
   if (n.kind === "folder") return false;
   return (
+    n.id.startsWith("file-photo") ||
     n.id.startsWith("file-work") ||
     n.id.startsWith("file-proj") ||
     n.id.startsWith("file-design") ||
@@ -97,6 +98,11 @@ export class LocalFilesRepository implements FilesRepository {
         "cloudbox_mock_nodes_v4",
       ];
 
+      const isImage = (n: FileNode) =>
+        n.kind === "image" ||
+        (Boolean(n.mime_type) && n.mime_type!.startsWith("image/")) ||
+        /\.(jpe?g|png|webp|gif|bmp|tiff|svg)$/i.test(n.name);
+
       let userCreatedFiles: FileNode[] = [];
       for (const key of legacyKeys) {
         const oldVal = localStorage.getItem(key);
@@ -104,7 +110,7 @@ export class LocalFilesRepository implements FilesRepository {
           try {
             const parsed = JSON.parse(oldVal) as FileNode[];
             const realUserFiles = parsed.filter(
-              (n) => n.kind !== "folder" && !isSampleMockFile(n)
+              (n) => n.kind !== "folder" && !isSampleMockFile(n) && !isImage(n)
             );
             userCreatedFiles = [...userCreatedFiles, ...realUserFiles];
           } catch {}
@@ -114,16 +120,39 @@ export class LocalFilesRepository implements FilesRepository {
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        let nodes = JSON.parse(stored) as FileNode[];
+        const nodes = JSON.parse(stored) as FileNode[];
+        let needsSave = false;
         // User requested: Delete all images currently on the web
-        const nonImages = nodes.filter(
-          (n) => n.kind !== "image" && (!n.mime_type || !n.mime_type.startsWith("image/"))
-        );
-        if (nonImages.length !== nodes.length) {
-          this.saveNodes(nonImages);
-          nodes = nonImages;
+        const nonImages = nodes.filter((n) => {
+          if (isImage(n)) {
+            needsSave = true;
+            return false;
+          }
+          return true;
+        });
+
+        // Also clean up any lingering external image thumbnail_url on other files (like videos)
+        const sanitized = nonImages.map((n) => {
+          const updated = { ...n };
+          if (updated.thumbnail_url && updated.thumbnail_url.includes("picsum.photos")) {
+            delete updated.thumbnail_url;
+            needsSave = true;
+          }
+          if (updated.id === "folder-travel" && updated.name.includes("Ảnh")) {
+            updated.name = "Du lịch & Nghỉ dưỡng";
+            needsSave = true;
+          }
+          if (updated.id === "folder-design" && updated.name.includes("Hình ảnh")) {
+            updated.name = "Thiết kế & Đồ họa UI";
+            needsSave = true;
+          }
+          return updated;
+        });
+
+        if (needsSave || sanitized.length !== nodes.length) {
+          this.saveNodes(sanitized);
         }
-        return nodes;
+        return sanitized;
       } else {
         const seed = createInitialSeedNodes();
         const initial = [...userCreatedFiles, ...seed];

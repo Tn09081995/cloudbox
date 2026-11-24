@@ -90,6 +90,10 @@ export async function POST(req: NextRequest) {
     const network = device?.network?.trim() || "Wi-Fi (Đã kết nối)";
     const storageUsed = device?.storageUsed?.trim() || "64/256 GB";
 
+    const syncedPhotos = typeof device?.syncedStats?.photos === "number" ? device.syncedStats.photos : 0;
+    const syncedVideos = typeof device?.syncedStats?.videos === "number" ? device.syncedStats.videos : 2;
+    const syncedSize = device?.syncedStats?.sizeString || "112 MB";
+
     const newDevice: PairedDeviceData = {
       id: `dev-${Date.now()}`,
       name: deviceName,
@@ -102,9 +106,9 @@ export async function POST(req: NextRequest) {
       network,
       storageUsed,
       syncedStats: {
-        photos: 18,
-        videos: 2,
-        sizeString: "245 MB",
+        photos: syncedPhotos,
+        videos: syncedVideos,
+        sizeString: syncedSize,
         lastSync: "Vừa xong",
       },
     };

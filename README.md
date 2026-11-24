@@ -28,7 +28,7 @@
 4. **Trang "Tệp của tôi" (`/drive`)**:
    - **Hàng thẻ kỷ niệm (Memories Carousel)** ở đầu trang: Thẻ ảnh bìa bo góc 16px cuộn ngang mượt mà với nút mũi tên tròn.
    - **Thư mục**: Các chip bo tròn kèm icon thư mục và menu ba chấm.
-   - **Tệp tin nhóm theo ngày**: Tiêu đề tháng lớn (*"Tháng 11"*, font-weight 400), tiêu đề ngày nhỏ bên dưới (*"Thứ Hai, ngày 23 tháng 11"*), lưới thẻ ảnh thumbnail từ picsum.photos và icon màu theo loại tài liệu.
+   - **Tệp tin nhóm theo ngày**: Tiêu đề tháng lớn (*"Tháng 11"*, font-weight 400), tiêu đề ngày nhỏ bên dưới (*"Thứ Hai, ngày 23 tháng 11"*), lưới thẻ tệp tin và icon màu theo loại tài liệu chuẩn Material You.
 
 5. **Tương tác toàn diện**:
    - **Hộp kiểm tròn (Circular Checkbox)** ở góc thẻ khi hover.
