@@ -101,9 +101,20 @@ export default function SettingsPage() {
   }, [show2FASetup, email]);
 
   // Storage data
-  const used = storage?.usedBytes || 18400000;
-  const quota = storage?.totalBytes || 214748364800; // 200 GB
-  const percentage = Math.max(1, Math.round((used / quota) * 100));
+  const used = storage?.usedBytes ?? 0;
+  const quota = storage?.totalBytes ?? 214748364800; // 200 GB
+  const percentage = used === 0 ? 0 : Math.max(1, Math.round((used / quota) * 100));
+  const imageBytes = storage?.breakdown?.image ?? 0;
+  const videoBytes = storage?.breakdown?.video ?? 0;
+  const docBytes =
+    (storage?.breakdown?.document ?? 0) +
+    (storage?.breakdown?.pdf ?? 0) +
+    (storage?.breakdown?.spreadsheet ?? 0) +
+    (storage?.breakdown?.code ?? 0);
+  const archiveBytes =
+    (storage?.breakdown?.archive ?? 0) +
+    (storage?.breakdown?.audio ?? 0) +
+    (storage?.breakdown?.other ?? 0);
 
   // Find 5 largest files
   const largestFiles = [...allNodes]
@@ -622,29 +633,49 @@ export default function SettingsPage() {
 
             {/* Segmented Breakdown Bar */}
             <div className="h-3.5 w-full rounded-full bg-surface-2 border border-border overflow-hidden flex">
-              <div style={{ width: "45%" }} className="bg-blue-500" title="Hình ảnh: 8,4 MB" />
-              <div style={{ width: "23%" }} className="bg-purple-500" title="Video: 4,2 MB" />
-              <div style={{ width: "17%" }} className="bg-emerald-500" title="Tài liệu: 3,1 MB" />
-              <div style={{ width: "15%" }} className="bg-amber-500" title="Tệp nén: 2,7 MB" />
+              {used > 0 && (
+                <>
+                  <div
+                    style={{ width: `${(imageBytes / used) * 100}%` }}
+                    className="bg-blue-500"
+                    title={`Hình ảnh: ${formatBytes(imageBytes)}`}
+                  />
+                  <div
+                    style={{ width: `${(videoBytes / used) * 100}%` }}
+                    className="bg-purple-500"
+                    title={`Video: ${formatBytes(videoBytes)}`}
+                  />
+                  <div
+                    style={{ width: `${(docBytes / used) * 100}%` }}
+                    className="bg-emerald-500"
+                    title={`Tài liệu: ${formatBytes(docBytes)}`}
+                  />
+                  <div
+                    style={{ width: `${(archiveBytes / used) * 100}%` }}
+                    className="bg-amber-500"
+                    title={`Tệp nén & khác: ${formatBytes(archiveBytes)}`}
+                  />
+                </>
+              )}
             </div>
 
             {/* Legend */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-blue-500 flex-shrink-0" />
-                <span className="text-muted-foreground">Hình ảnh: 8,4 MB</span>
+                <span className="text-muted-foreground">Hình ảnh: {formatBytes(imageBytes)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-purple-500 flex-shrink-0" />
-                <span className="text-muted-foreground">Video: 4,2 MB</span>
+                <span className="text-muted-foreground">Video: {formatBytes(videoBytes)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-emerald-500 flex-shrink-0" />
-                <span className="text-muted-foreground">Tài liệu: 3,1 MB</span>
+                <span className="text-muted-foreground">Tài liệu: {formatBytes(docBytes)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-amber-500 flex-shrink-0" />
-                <span className="text-muted-foreground">Tệp nén: 2,7 MB</span>
+                <span className="text-muted-foreground">Tệp nén: {formatBytes(archiveBytes)}</span>
               </div>
             </div>
           </div>

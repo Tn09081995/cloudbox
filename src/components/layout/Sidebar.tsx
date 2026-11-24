@@ -56,9 +56,9 @@ export function Sidebar({ className = "" }: { className?: string }) {
   const [buyStorageOpen, setBuyStorageOpen] = useState(false);
 
   // Storage calculation
-  const used = storage?.usedBytes || 12400000000; // 12,4 GB
-  const quota = storage?.totalBytes || 214748364800; // 200 GB
-  const percentage = Math.min(100, Math.max(6, Math.round((used / quota) * 100)));
+  const used = storage?.usedBytes ?? 0;
+  const quota = storage?.totalBytes ?? 214748364800; // 200 GB
+  const percentage = used === 0 ? 0 : Math.min(100, Math.max(1, Math.round((used / quota) * 100)));
 
   const navItems = [
     {
