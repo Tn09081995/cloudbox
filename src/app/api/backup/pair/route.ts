@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
     const storageUsed = device?.storageUsed?.trim() || "64/256 GB";
 
     const syncedPhotos = typeof device?.syncedStats?.photos === "number" ? device.syncedStats.photos : 0;
-    const syncedVideos = typeof device?.syncedStats?.videos === "number" ? device.syncedStats.videos : 2;
-    const syncedSize = device?.syncedStats?.sizeString || "112 MB";
+    const syncedVideos = typeof device?.syncedStats?.videos === "number" ? device.syncedStats.videos : 0;
+    const syncedSize = device?.syncedStats?.sizeString || "0 B";
 
     const newDevice: PairedDeviceData = {
       id: `dev-${Date.now()}`,

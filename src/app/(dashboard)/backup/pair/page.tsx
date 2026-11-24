@@ -218,12 +218,12 @@ function DevicePairContent() {
           storageUsed: payload.device.storageUsed,
           syncedStats: {
             photos: 0,
-            videos: 2,
-            sizeString: "112 MB",
+            videos: 0,
+            sizeString: "0 B",
             lastSync: "Vừa xong",
           },
         };
-        localStorage.setItem("cloudbox_backup_devices_v1", JSON.stringify([newDev, ...list]));
+        localStorage.setItem("cloudbox_backup_devices_v2", JSON.stringify([newDev, ...list]));
       } catch {}
 
       if (res.ok) {

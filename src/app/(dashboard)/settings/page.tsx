@@ -36,7 +36,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const { theme, setTheme } = useTheme();
   const { data: storage } = useStorageUsage();
-  const { resetData, deleteAllPhotos } = useFileMutations();
+  const { resetData, deleteAllPhotos, deleteAllFiles } = useFileMutations();
   const { data: allNodes = [] } = useFolderFiles(null);
   const { user, updateProfile } = useAuthStore();
 
@@ -155,6 +155,17 @@ export default function SettingsPage() {
         toast.success("Đã xóa sạch tất cả ảnh trên toàn bộ hệ thống!");
       } catch {
         toast.error("Không thể xóa ảnh");
+      }
+    }
+  };
+
+  const handleDeleteAllFiles = async () => {
+    if (confirm("Bạn có chắc chắn muốn xóa SẠCH TẤT CẢ tệp tin và thư mục trên CloudBox không? Toàn bộ dữ liệu sẽ trở về trạng thái trống (0 B).")) {
+      try {
+        await deleteAllFiles();
+        toast.success("Đã xóa sạch tất cả tệp tin và thư mục trên CloudBox!");
+      } catch {
+        toast.error("Không thể xóa tất cả tệp");
       }
     }
   };
@@ -733,8 +744,34 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Quick Action: Purge All Photos */}
+      {/* Quick Actions: Purge All Files & Photos */}
       <div className="pt-6 border-t border-border max-w-2xl space-y-3">
+        <div className="p-4 rounded-card bg-surface-2 border border-border flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-btn bg-semantic-danger/10 text-semantic-danger flex items-center justify-center flex-shrink-0">
+              <Trash2 className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">
+                Xóa tất cả tệp tin & thư mục
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Xóa sạch toàn bộ tệp, thư mục, tài liệu, video và ảnh trên CloudBox về trạng thái trống (0 B).
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDeleteAllFiles}
+            className="rounded-btn text-xs font-semibold text-semantic-danger border-semantic-danger/30 hover:bg-semantic-danger hover:text-white hover:border-semantic-danger transition-colors flex-shrink-0"
+          >
+            Xóa tất cả tệp
+          </Button>
+        </div>
+
         <div className="p-4 rounded-card bg-surface-2 border border-border flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-btn bg-semantic-danger/10 text-semantic-danger flex items-center justify-center flex-shrink-0">

@@ -17,8 +17,8 @@ export const DEFAULT_BACKUP_DEVICES: BackupDevice[] = [
     storageUsed: "128/256 GB",
     syncedStats: {
       photos: 0,
-      videos: 2,
-      sizeString: "112 MB",
+      videos: 0,
+      sizeString: "0 B",
       lastSync: "Vừa xong",
     },
   },
@@ -35,8 +35,8 @@ export const DEFAULT_BACKUP_DEVICES: BackupDevice[] = [
     storageUsed: "142/512 GB",
     syncedStats: {
       photos: 0,
-      videos: 1,
-      sizeString: "48 MB",
+      videos: 0,
+      sizeString: "0 B",
       lastSync: "Vừa xong",
     },
   },
@@ -52,10 +52,10 @@ export const DEFAULT_AUTO_BACKUP_CONFIG: AutoBackupConfig = {
 };
 
 const STORAGE_KEYS = {
-  DEVICES: "cloudbox_backup_devices_v1",
+  DEVICES: "cloudbox_backup_devices_v2",
   CONFIG: "cloudbox_auto_backup_config_v1",
-  HISTORY: "cloudbox_backup_sync_history_v1",
-  NODES: "cloudbox_material_nodes_v1",
+  HISTORY: "cloudbox_backup_sync_history_v2",
+  NODES: "cloudbox_material_nodes_v6_empty",
 };
 
 let debounceTimer: NodeJS.Timeout | null = null;
@@ -150,10 +150,10 @@ export class BackupSyncService {
     if (typeof window === "undefined") {
       return {
         photosCount: 0,
-        videosCount: 2,
-        documentsCount: 15,
-        totalBytes: 1024 * 1024 * 150,
-        totalSizeString: "150 MB",
+        videosCount: 0,
+        documentsCount: 0,
+        totalBytes: 0,
+        totalSizeString: "0 B",
       };
     }
 
@@ -197,10 +197,10 @@ export class BackupSyncService {
 
     return {
       photosCount: 0,
-      videosCount: 2,
-      documentsCount: 15,
-      totalBytes: 1024 * 1024 * 150,
-      totalSizeString: "150 MB",
+      videosCount: 0,
+      documentsCount: 0,
+      totalBytes: 0,
+      totalSizeString: "0 B",
     };
   }
 

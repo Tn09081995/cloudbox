@@ -3,7 +3,7 @@ import { createInitialSeedNodes } from "./seed";
 import { removeDiacritics } from "@/lib/utils/formatters";
 import { FileKind, getFileKind } from "@/lib/utils/file-types";
 
-const STORAGE_KEY = "cloudbox_material_nodes_v5_clean";
+const STORAGE_KEY = "cloudbox_material_nodes_v6_empty";
 
 function getCurrentUserOwner(): NodeOwner {
   if (typeof window !== "undefined") {
@@ -79,6 +79,7 @@ export interface FilesRepository {
   updateShareSettings(id: string, settings: ShareSettings): Promise<ShareSettings>;
   resetToSeed(): Promise<void>;
   deleteAllPhotos(): Promise<number>;
+  deleteAllFiles(): Promise<number>;
 }
 
 // Simulated network delay (150ms - 300ms)
@@ -91,79 +92,32 @@ export class LocalFilesRepository implements FilesRepository {
     }
 
     try {
-      // Clean legacy v1/v2/v3/v4 storage if present
+      // Wipe all legacy storage keys so CloudBox starts completely clean (0 files)
       const legacyKeys = [
         "cloudbox_material_nodes_v1",
         "cloudbox_material_nodes_v2",
         "cloudbox_material_nodes_v3",
         "cloudbox_material_nodes_v4",
+        "cloudbox_material_nodes_v5_clean",
         "cloudbox_mock_nodes_v1",
         "cloudbox_mock_nodes_v2",
         "cloudbox_mock_nodes_v3",
         "cloudbox_mock_nodes_v4",
       ];
 
-      const isImage = (n: FileNode) =>
-        n.kind === "image" ||
-        (Boolean(n.mime_type) && n.mime_type!.startsWith("image/")) ||
-        /\.(jpe?g|png|webp|gif|bmp|tiff|svg|heic|heif|raw|cr2|nef)$/i.test(n.name) ||
-        n.id.startsWith("file-photo");
-
-      let userCreatedFiles: FileNode[] = [];
       for (const key of legacyKeys) {
-        const oldVal = localStorage.getItem(key);
-        if (oldVal) {
-          try {
-            const parsed = JSON.parse(oldVal) as FileNode[];
-            const realUserFiles = parsed.filter(
-              (n) => n.kind !== "folder" && !isSampleMockFile(n) && !isImage(n)
-            );
-            userCreatedFiles = [...userCreatedFiles, ...realUserFiles];
-          } catch {}
+        if (localStorage.getItem(key) !== null) {
           localStorage.removeItem(key);
         }
       }
 
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const nodes = JSON.parse(stored) as FileNode[];
-        let needsSave = false;
-        // User requested: Delete all images currently on the web
-        const nonImages = nodes.filter((n) => {
-          if (isImage(n)) {
-            needsSave = true;
-            return false;
-          }
-          return true;
-        });
-
-        // Also clean up any lingering external image thumbnail_url on other files (like videos)
-        const sanitized = nonImages.map((n) => {
-          const updated = { ...n };
-          if (updated.thumbnail_url && updated.thumbnail_url.includes("picsum.photos")) {
-            delete updated.thumbnail_url;
-            needsSave = true;
-          }
-          if (updated.id === "folder-travel" && updated.name.includes("Ảnh")) {
-            updated.name = "Du lịch & Nghỉ dưỡng";
-            needsSave = true;
-          }
-          if (updated.id === "folder-design" && updated.name.includes("Hình ảnh")) {
-            updated.name = "Thiết kế & Đồ họa UI";
-            needsSave = true;
-          }
-          return updated;
-        });
-
-        if (needsSave || sanitized.length !== nodes.length) {
-          this.saveNodes(sanitized);
-        }
-        return sanitized;
+        return JSON.parse(stored) as FileNode[];
       } else {
         const seed = createInitialSeedNodes();
-        const initial = [...userCreatedFiles, ...seed];
-        this.saveNodes(initial);
-        return initial;
+        this.saveNodes(seed);
+        return seed;
       }
     } catch {}
 
@@ -229,6 +183,14 @@ export class LocalFilesRepository implements FilesRepository {
     const remaining = nodes.filter((n) => !isImage(n));
     const count = nodes.length - remaining.length;
     this.saveNodes(remaining);
+    return count;
+  }
+
+  async deleteAllFiles(): Promise<number> {
+    await delay(150);
+    const nodes = this.getNodes();
+    const count = nodes.length;
+    this.saveNodes([]);
     return count;
   }
 

@@ -402,8 +402,8 @@ export default function MobileBackupPage() {
       storageUsed: storage,
       syncedStats: {
         photos: 0,
-        videos: 2,
-        sizeString: "112 MB",
+        videos: 0,
+        sizeString: "0 B",
         lastSync: "Vừa xong",
       },
     };
