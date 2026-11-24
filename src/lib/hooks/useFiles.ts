@@ -188,6 +188,15 @@ export function useFileMutations() {
     onSuccess: invalidateAll,
   });
 
+  const deleteAllPhotosMutation = useMutation({
+    mutationFn: () => repository.deleteAllPhotos(),
+    onSuccess: () => {
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.storage });
+    },
+  });
+
   return {
     createFolder: createFolderMutation.mutateAsync,
     createTextFile: createTextFileMutation.mutateAsync,
@@ -203,5 +212,6 @@ export function useFileMutations() {
     updateColor: updateColorMutation.mutateAsync,
     updateShare: updateShareMutation.mutateAsync,
     resetData: resetDataMutation.mutateAsync,
+    deleteAllPhotos: deleteAllPhotosMutation.mutateAsync,
   };
 }

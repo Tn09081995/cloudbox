@@ -457,7 +457,7 @@ export default function MobileBackupPage() {
           >
             <Link href="/photos">
               <ImageIcon className="h-4 w-4" />
-              <span>Xem ảnh đã sao lưu</span>
+              <span>Thư viện ảnh</span>
             </Link>
           </Button>
 

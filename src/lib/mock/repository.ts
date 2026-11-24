@@ -3,7 +3,7 @@ import { createInitialSeedNodes } from "./seed";
 import { removeDiacritics } from "@/lib/utils/formatters";
 import { FileKind, getFileKind } from "@/lib/utils/file-types";
 
-const STORAGE_KEY = "cloudbox_material_nodes_v1";
+const STORAGE_KEY = "cloudbox_material_nodes_v5_clean";
 
 function getCurrentUserOwner(): NodeOwner {
   if (typeof window !== "undefined") {
@@ -78,6 +78,7 @@ export interface FilesRepository {
   updateFolderColor(id: string, color: string): Promise<void>;
   updateShareSettings(id: string, settings: ShareSettings): Promise<ShareSettings>;
   resetToSeed(): Promise<void>;
+  deleteAllPhotos(): Promise<number>;
 }
 
 // Simulated network delay (150ms - 300ms)
@@ -92,6 +93,10 @@ export class LocalFilesRepository implements FilesRepository {
     try {
       // Clean legacy v1/v2/v3/v4 storage if present
       const legacyKeys = [
+        "cloudbox_material_nodes_v1",
+        "cloudbox_material_nodes_v2",
+        "cloudbox_material_nodes_v3",
+        "cloudbox_material_nodes_v4",
         "cloudbox_mock_nodes_v1",
         "cloudbox_mock_nodes_v2",
         "cloudbox_mock_nodes_v3",
@@ -101,7 +106,8 @@ export class LocalFilesRepository implements FilesRepository {
       const isImage = (n: FileNode) =>
         n.kind === "image" ||
         (Boolean(n.mime_type) && n.mime_type!.startsWith("image/")) ||
-        /\.(jpe?g|png|webp|gif|bmp|tiff|svg)$/i.test(n.name);
+        /\.(jpe?g|png|webp|gif|bmp|tiff|svg|heic|heif|raw|cr2|nef)$/i.test(n.name) ||
+        n.id.startsWith("file-photo");
 
       let userCreatedFiles: FileNode[] = [];
       for (const key of legacyKeys) {
@@ -203,9 +209,27 @@ export class LocalFilesRepository implements FilesRepository {
     const nodes = this.getNodes();
     return nodes
       .filter(
-        (node) => !node.is_trashed && !node.is_locked && (node.kind === "image" || node.kind === "video")
+        (node) =>
+          !node.is_trashed &&
+          !node.is_locked &&
+          (node.kind === "image" || (Boolean(node.mime_type) && node.mime_type!.startsWith("image/")))
       )
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  async deleteAllPhotos(): Promise<number> {
+    await delay(150);
+    const nodes = this.getNodes();
+    const isImage = (n: FileNode) =>
+      n.kind === "image" ||
+      (Boolean(n.mime_type) && n.mime_type!.startsWith("image/")) ||
+      /\.(jpe?g|png|webp|gif|bmp|tiff|svg|heic|heif)$/i.test(n.name) ||
+      n.id.startsWith("file-photo");
+
+    const remaining = nodes.filter((n) => !isImage(n));
+    const count = nodes.length - remaining.length;
+    this.saveNodes(remaining);
+    return count;
   }
 
   async getDocuments(): Promise<FileNode[]> {

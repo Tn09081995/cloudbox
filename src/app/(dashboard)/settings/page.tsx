@@ -17,6 +17,7 @@ import {
   Download,
   Camera,
   Trash2,
+  ImageOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const { theme, setTheme } = useTheme();
   const { data: storage } = useStorageUsage();
-  const { resetData } = useFileMutations();
+  const { resetData, deleteAllPhotos } = useFileMutations();
   const { data: allNodes = [] } = useFolderFiles(null);
   const { user, updateProfile } = useAuthStore();
 
@@ -143,6 +144,17 @@ export default function SettingsPage() {
         toast.success(vi.settings.resetSuccess);
       } catch {
         toast.error("Không thể đặt lại dữ liệu");
+      }
+    }
+  };
+
+  const handleDeleteAllPhotos = async () => {
+    if (confirm("Bạn có chắc chắn muốn xóa toàn bộ ảnh trên CloudBox không? Thư viện ảnh sẽ được dọn sạch hoàn toàn.")) {
+      try {
+        await deleteAllPhotos();
+        toast.success("Đã xóa sạch tất cả ảnh trên toàn bộ hệ thống!");
+      } catch {
+        toast.error("Không thể xóa ảnh");
       }
     }
   };
@@ -721,8 +733,35 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Global Reset Seed Data Action */}
-      <div className="pt-6 border-t border-border max-w-2xl">
+      {/* Quick Action: Purge All Photos */}
+      <div className="pt-6 border-t border-border max-w-2xl space-y-3">
+        <div className="p-4 rounded-card bg-surface-2 border border-border flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-btn bg-semantic-danger/10 text-semantic-danger flex items-center justify-center flex-shrink-0">
+              <ImageOff className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">
+                Xóa tất cả ảnh trên CloudBox
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Dọn sạch hoàn toàn tất cả hình ảnh trong thư viện đám mây và đồng bộ 0 ảnh.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDeleteAllPhotos}
+            className="rounded-btn text-xs font-semibold text-semantic-danger border-semantic-danger/30 hover:bg-semantic-danger hover:text-white hover:border-semantic-danger transition-colors flex-shrink-0"
+          >
+            Xóa tất cả ảnh
+          </Button>
+        </div>
+
+        {/* Global Reset Seed Data Action */}
         <div className="p-4 rounded-card bg-surface-2 border border-border flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-btn bg-muted flex items-center justify-center text-muted-foreground flex-shrink-0">
